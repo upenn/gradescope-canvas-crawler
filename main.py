@@ -47,7 +47,7 @@ for course in acct.student_courses.values():
         if assigned is None and due is None:
             continue
 
-        base_name = f"{shortname} - {name}"
+        base_name = f"{name} - {shortname}"
         if assigned is not None:
             event = Event()
             event.name = f"{base_name} Assigned"
