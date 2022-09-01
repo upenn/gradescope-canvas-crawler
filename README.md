@@ -13,3 +13,8 @@ python main.py # Run the script
 ```
 
 You'll be prompted for your Gradescope username and password. After the script runs, there should be a file called `gradescope.ics` in the current directory.
+
+## Flask App
+
+There's also a Flask app that can be called like this:
+`http://0.0.0.0:whatever/gradescope?email=<write email here>&pwd=<write password here>`
