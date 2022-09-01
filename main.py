@@ -71,5 +71,5 @@ Due: {due.strftime(date_printfmt) if due is not None else "None"}"""
             cal.events.add(hw_event(name, "Due", due))
 
 
-with open("calendar.ics", "w") as f:
+with open("gradescope.ics", "w") as f:
     f.writelines(cal.serialize_iter())
