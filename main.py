@@ -31,10 +31,8 @@ course: gs.GSCourse = None
 cal = Calendar()
 
 for course in acct.student_courses.values():
-    shortname = course.shortname
-    print(f"Processing Course: {shortname}")
-
-    event_size = datetime.timedelta(minutes=10)
+    course_name = course.shortname
+    print(f"Processing Course: {course_name}")
 
     assignments = course.get_assignments()
     for assign in assignments:
@@ -44,23 +42,33 @@ for course in acct.student_courses.values():
         assigned = assign["assigned"]
         due = assign["due"]
 
+        date_printfmt = "%A, %d. %B %Y %I:%M%p"
+
+        desc = f"""Course: {course.name}
+Course Shortname: {course.shortname}
+
+Assignment: {name}
+Assigned: {assigned.strftime(date_printfmt) if assigned is not None else "None"}
+Due: {due.strftime(date_printfmt) if due is not None else "None"}"""
+
         if assigned is None and due is None:
             continue
 
-        base_name = f"{name} - {shortname}"
-        if assigned is not None:
+        def hw_event(name, type, time):
+            global course_name
+
             event = Event()
-            event.name = f"{base_name} Assigned"
-            event.begin = assigned
-            event.duration = event_size
-            cal.events.add(event)
+            event.name = f"{name} - {course_name} {type}"
+            event.begin = time
+            event.end = time
+            event.description = desc
+            return event
+
+        if assigned is not None:
+            cal.events.add(hw_event(name, "Assigned", assigned))
 
         if due is not None:
-            event = Event()
-            event.name = f"{base_name} Due"
-            event.begin = due - event_size
-            event.end = due
-            cal.events.add(event)
+            cal.events.add(hw_event(name, "Due", due))
 
 
 with open("calendar.ics", "w") as f:
