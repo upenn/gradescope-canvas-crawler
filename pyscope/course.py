@@ -100,7 +100,7 @@ class GSCourse:
 
         datefmt = "%Y-%m-%d %H:%M:%S %z"
 
-        assignments = {}
+        assignments = []
 
         for row in assignments_table_body.find_all("tr"):
             name = row.find("th").text
@@ -120,10 +120,13 @@ class GSCourse:
             else:
                 due = datetime.strptime(due, datefmt)
 
-            assignments[name] = {
-                "assigned": assigned,
-                "due": due,
-            }
+            assignments.append(
+                {
+                    "name": name,
+                    "assigned": assigned,
+                    "due": due,
+                }
+            )
 
         return assignments
 
