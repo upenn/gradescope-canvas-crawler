@@ -4,10 +4,10 @@ import datetime
 from getpass import getpass
 import os
 
-from pyscope.account import GSAccount
+from pyscope.account import GSAccount, GSCourse
 
 
-def do_the_thing(email, pwd):
+def login(email, pwd) -> GSAccount:
     conn = gs.GSConnection()
 
     print("Logging in...")
@@ -17,50 +17,72 @@ def do_the_thing(email, pwd):
     success = conn.get_account()
     if not success:
         print("Failed to get account")
-        exit(1)
+        return None
 
-    acct: GSAccount = conn.account
-    course: gs.GSCourse = None
+    return conn.account
 
-    cal = Calendar()
 
-    for course in acct.student_courses.values():
-        course_name = course.shortname
-        print(f"Processing Course: {course_name}")
+def get_courses(acct: GSAccount) -> list[GSCourse]:
+    return list(acct.student_courses.values())
 
-        assignments = course.get_assignments()
-        for assign in assignments:
-            name = assign["name"]
-            # print(f"\tProcessing Assignment: {name}")
 
-            assigned = assign["assigned"]
-            due = assign["due"]
+def get_semesters(courses: list[GSCourse]) -> list[str]:
+    semesters = set()
+    for course in courses:
+        semesters.add(course.year)
+    return list(semesters)
 
-            date_printfmt = "%A, %d. %B %Y %I:%M%p"
 
-            desc = f"""Course: {course.name}
+def create_hw_events(course: GSCourse, assignment: dict) -> list[Event]:
+    name = assignment["name"]
+    # print(f"\tProcessing Assignment: {name}")
+
+    assigned = assignment["assigned"]
+    due = assignment["due"]
+
+    date_printfmt = "%A, %d. %B %Y %I:%M%p"
+
+    desc = f"""Course: {course.name}
 Course Shortname: {course.shortname}
 
 Assignment: {name}
 Assigned: {assigned.strftime(date_printfmt) if assigned is not None else "None"}
 Due: {due.strftime(date_printfmt) if due is not None else "None"}"""
 
-            if assigned is None and due is None:
-                continue
+    out = []
 
-            def hw_event(name, course_name, type, time):
-                event = Event()
-                event.name = f"{name} - {course_name} {type}"
-                event.begin = time
-                event.end = time
-                event.description = desc
-                return event
+    def hw_event(name, course_name, type, time):
+        event = Event()
+        event.name = f"{name} - {course_name} {type}"
+        event.begin = time
+        event.end = time
+        event.description = desc
+        return event
 
-            if assigned is not None:
-                cal.events.add(hw_event(name, course_name, "Assigned", assigned))
+    if assigned is not None:
+        out.append(hw_event(name, course.shortname, "Assigned", assigned))
 
-            if due is not None:
-                cal.events.add(hw_event(name, course_name, "Due", due))
+    if due is not None:
+        out.append(hw_event(name, course.shortname, "Due", due))
+
+    return out
+
+
+def do_the_thing(email, pwd):
+    acct: GSAccount = login(email, pwd)
+    courses = get_courses(acct)
+
+    cal = Calendar()
+
+    for course in courses:
+        course_name = course.shortname
+        print(f"Processing Course: {course_name}")
+
+        assignments = course.get_assignments()
+        for assign in assignments:
+            events = create_hw_events(course, assign)
+            for event in events:
+                cal.events.add(event)
 
     return cal.serialize_iter()
 
