@@ -76,7 +76,7 @@ def do_the_thing(email, pwd, sem=None):
 
     for course in courses:
         if sem is not None:
-            if course.year is not sem:
+            if course.year != sem:
                 continue
 
         course_name = course.shortname
