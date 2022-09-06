@@ -68,13 +68,17 @@ Due: {due.strftime(date_printfmt) if due is not None else "None"}"""
     return out
 
 
-def do_the_thing(email, pwd):
+def do_the_thing(email, pwd, sem=None):
     acct: GSAccount = login(email, pwd)
     courses = get_courses(acct)
 
     cal = Calendar()
 
     for course in courses:
+        if sem is not None:
+            if course.year is not sem:
+                continue
+
         course_name = course.shortname
         print(f"Processing Course: {course_name}")
 
@@ -90,11 +94,15 @@ def do_the_thing(email, pwd):
 if __name__ == "__main__":
     email = os.environ.get("GS_EMAIL")
     pwd = os.environ.get("GS_PWD")
+    sem = os.environ.get("GS_SEM")
 
     # Login
-    if email is None or pwd is None:
+    if email is None:
         email = input("Email: ")
+    if pwd is None:
         pwd = getpass("Password: ")
+    if sem is None:
+        sem = input("Semester: ")
 
     with open("gradescope.ics", "w") as f:
-        f.writelines(do_the_thing(email, pwd))
+        f.writelines(do_the_thing(email, pwd, sem))
