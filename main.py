@@ -1,3 +1,4 @@
+from threading import Thread
 from pyscope import pyscope as gs
 from ics import Calendar, Event
 import datetime
@@ -69,26 +70,47 @@ Due: {due.strftime(date_printfmt) if due is not None else "None"}"""
     return out
 
 
+def get_course_events(course: GSCourse, all_events: list[Event]):
+    course_name = course.shortname
+    print(f"Started Processing Course: {course_name}")
+
+    assignments = course.get_assignments()
+    # all_events = []
+
+    for assign in assignments:
+        events = create_hw_events(course, assign)
+        all_events.extend(events)
+
+    print(f"Finished Processing Course: {course_name}")
+
+    return
+
+
 def do_the_thing(email, pwd, sem=None):
     acct: GSAccount = login(email, pwd)
     courses = get_courses(acct)
 
     cal = Calendar()
+    threads = []
+    events = []
 
     for course in courses:
         if sem is not None:
             if course.year != sem:
                 continue
 
-        course_name = course.shortname
-        print(f"Processing Course: {course_name}")
+        thread = Thread(target=get_course_events, args=(course, events))
+        thread.start()
+        threads.append(thread)
+        # events = get_course_events(course)
+        # for event in events:
+        #     cal.events.add(event)
 
-        assignments = course.get_assignments()
+    for thread in threads:
+        thread.join()
 
-        for assign in assignments:
-            events = create_hw_events(course, assign)
-            for event in events:
-                cal.events.add(event)
+    for event in events:
+        cal.events.add(event)
 
     return cal.serialize_iter()
 
