@@ -44,6 +44,7 @@ def create_hw_events(course: GSCourse, assignment: dict) -> list[Event]:
 
     desc = f"""Course: {course.name}
 Course Shortname: {course.shortname}
+Link to Course: {course.get_url()}
 
 Assignment: {name}
 Assigned: {assigned.strftime(date_printfmt) if assigned is not None else "None"}
@@ -83,6 +84,7 @@ def do_the_thing(email, pwd, sem=None):
         print(f"Processing Course: {course_name}")
 
         assignments = course.get_assignments()
+
         for assign in assignments:
             events = create_hw_events(course, assign)
             for event in events:

@@ -35,6 +35,9 @@ class GSCourse:
 
     # ~~~~~~~~~~~~~~~~~~~~~~PEOPLE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    def get_url(self):
+        return "https://www.gradescope.com/courses/" + self.cid
+
     def add_person(self, name, email, role, sid=None, notify=False):
         self._check_capabilities({LoadedCapabilities.ROSTER})
 
