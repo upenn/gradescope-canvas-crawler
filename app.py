@@ -16,11 +16,12 @@ def gradescope_ics():
     email = args.get("email")
     pwd = args.get("pwd")
 
-    sem = args.get("sem")
     semSeason = args.get("semSeason")
     semYear = args.get("semYear")
 
-    if sem is None and semSeason is not None and semYear is not None:
+    sem = None
+
+    if semSeason is not None and semYear is not None:
         sem = f"{semSeason} {semYear}"
 
     ical = "".join(

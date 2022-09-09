@@ -10,6 +10,7 @@
       let url = window.location.origin + "/gradescope.ics?";
 
       const formData = new FormData(document.getElementById("the-form"));
+      console.log(formData);
       for (var pair of formData.entries()) {
         url = url + pair[0] + "=" + encodeURIComponent(pair[1]) + "&";
       }
