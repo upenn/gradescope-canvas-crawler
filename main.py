@@ -4,6 +4,7 @@ from ics import Calendar, Event
 import datetime
 from getpass import getpass
 import os
+import hashlib
 
 from pyscope.account import GSAccount, GSCourse
 
@@ -59,6 +60,10 @@ Due: {due.strftime(date_printfmt) if due is not None else "None"}"""
         event.begin = time
         event.end = time
         event.description = desc
+
+        hash = f"{name}{course_name}{time.strftime('%Y%m%d')}"
+        hash = hashlib.sha1(hash.encode("utf-8")).hexdigest()
+        event.uid = f"{hash}@sagarpatil.me"
         return event
 
     if assigned is not None:
