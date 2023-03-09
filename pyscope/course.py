@@ -31,12 +31,17 @@ class GSCourse:
         self.roster = {}  # TODO: Maybe shouldn't dict.
         self.state = (
             set()
-        )  # Set of already loaded entitites (TODO what is the pythonic way to do this?)
+        )  # Set of already loaded entities (TODO what is the pythonic way to do this?)
 
     # ~~~~~~~~~~~~~~~~~~~~~~PEOPLE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def get_url(self):
         return "https://www.gradescope.com/courses/" + self.cid
+    
+    def get_roster(self):
+        self._check_capabilities({LoadedCapabilities.ROSTER})
+
+        return self.roster
 
     def add_person(self, name, email, role, sid=None, notify=False):
         self._check_capabilities({LoadedCapabilities.ROSTER})
@@ -96,19 +101,34 @@ class GSCourse:
         self._lazy_load_roster()
 
     def get_assignments(self):
-        assignments_resp = self.session.get("https://www.gradescope.com/courses/" + self.cid)
+        assignments_resp = self.session.get("https://www.gradescope.com/courses/" + self.cid + '/assignments')
         parsed = BeautifulSoup(assignments_resp.text, "html.parser")
 
-        assignments_table_body = parsed.find("table", id="assignments-student-table").find("tbody")
+        if 'You are not authorized to access this page.' in parsed.text:
+            assignments_resp = self.session.get("https://www.gradescope.com/courses/" + self.cid)
+            parsed = BeautifulSoup(assignments_resp.text, "html.parser")
+
+        assignments_table = parsed.find("table", id="assignments-student-table")
+        if not assignments_table:
+            assignments_table = parsed.find("table", id="assignments-instructor-table")
+
+        assignments_table_body = assignments_table.find("tbody")
 
         datefmt = "%Y-%m-%d %H:%M:%S %z"
 
         assignments = []
 
-        for row in assignments_table_body.find_all("tr"):
-            name = row.find("th").text
+        for row in assignments_table_body.find_all("tr"):            
+            name = row.find("th", class_="table--primaryLink")
 
-            timeline_cols = row.find_all("td", {"class": "hidden-column"})
+            if not name:
+                name = row.find("div", class_="assignments--rowTitle")
+            name = name.text
+
+            timeline_cols = row.find_all("td", {"class": "table--hiddenColumn"})
+
+            if not timeline_cols or len(timeline_cols) == 0:
+                timeline_cols = row.find_all("td", {"class": "hidden-column"})
 
             assigned = timeline_cols[0].text
             due = timeline_cols[1].text
@@ -123,13 +143,11 @@ class GSCourse:
             else:
                 due = datetime.strptime(due, datefmt)
 
-            assignments.append(
-                {
+            assignments.append( {
                     "name": name,
                     "assigned": assigned,
                     "due": due,
-                }
-            )
+                })
 
         return assignments
 
@@ -281,6 +299,12 @@ class GSCourse:
         )
         parsed_membership_resp = BeautifulSoup(membership_resp.text, "html.parser")
 
+        if "You are not authorized to access this page" in membership_resp.text:
+            print ('No access to roster, skipping')
+            return
+        else:
+            print("Instructor access to roster")
+
         roster_table = []
         for student_row in parsed_membership_resp.find_all("tr", class_="rosterRow"):
             row = []
@@ -299,8 +323,8 @@ class GSCourse:
             else:
                 email = row[2].text
                 role = row[3].find("option", selected="selected").text
-                submissions = int(row[4].text)
-                linked = True if "statusIcon-active" in row[5].find("i").get("class") else False
+                submissions = int(row[5].text)
+                linked = True if "statusIcon-active" in row[6].find("i").get("class") else False
             # TODO Make types reasonable.
             self.roster[name] = GSPerson(name, data_id, email, role, submissions, linked)
         self.state.add(LoadedCapabilities.ROSTER)

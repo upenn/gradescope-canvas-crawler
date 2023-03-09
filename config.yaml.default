@@ -1,0 +1,4 @@
+gs_login: 'a@b.com'
+gs_pwd: 'letmein123!'
+
+use_threads: false

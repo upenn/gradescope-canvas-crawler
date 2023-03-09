@@ -2,6 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 from enum import Enum
 
+import logging
+
 try:
     from account import GSAccount
 except ModuleNotFoundError:
@@ -64,25 +66,28 @@ class GSConnection:
         this is subject to change.
         """
         if self.state != ConnState.LOGGED_IN:
+            raise "No login"
             return False  # Should raise exception
         # Get account page and parse it using bs4
         account_resp = self.session.get("https://www.gradescope.com/account")
         parsed_account_resp = BeautifulSoup(account_resp.text, "html.parser")
 
-        # Get instructor course data
-        instructor_courses = parsed_account_resp.find("h1", class_="pageHeading").next_sibling
+        # Get instructor course data. This is called "Your Courses" if there is only
+        # one type of course, or "Instructor Courses" if not
+        instructor_courses = parsed_account_resp.find("h1", class_="pageHeading").next_sibling.next_sibling
 
         for course in instructor_courses.find_all("a", class_="courseBox"):
             shortname = course.find("h3", class_="courseBox--shortname").text
-            name = course.find("h4", class_="courseBox--name").text
+            name = course.find("div", class_="courseBox--name").text
             cid = course.get("href").split("/")[-1]
             year = None
-            # print(cid, name, shortname)
+            print('Instructor in: ', cid, name, shortname)
             for tag in course.parent.previous_siblings:
                 if "courseList--term" in tag.get("class"):
                     year = tag.string
                     break
             if year is None:
+                raise "No year"
                 return False  # Should probably raise an exception.
             self.account.add_class(
                 cid, name, shortname, year, instructor=False
@@ -93,27 +98,24 @@ class GSConnection:
         )
 
         if student_courses is None:
+            print('No student courses found')
             return True
 
         student_courses = student_courses.next_sibling
 
         for course in student_courses.find_all("a", class_="courseBox"):
             shortname = course.find("h3", class_="courseBox--shortname").text
-            name = course.find("h4", class_="courseBox--name").text
+            name = course.find("div", class_="courseBox--name").text
             cid = course.get("href").split("/")[-1]
+            print('Student in: ', cid, name, shortname)
 
             for tag in course.parent.previous_siblings:
                 if tag.get("class") == "courseList--term pageSubheading":
                     year = tag.body
                     break
             if year is None:
+                raise "No year"
                 return False  # Should probably raise an exception.
             self.account.add_class(cid, name, shortname, year)
 
-
-# THIS IS STRICTLY FOR DEVELOPMENT TESTING :( Sorry for leaving it in.
-if __name__ == "__main__":
-    conn = GSConnection()
-    conn.login("email", "password")
-    print(conn.state)
-    conn.get_account()
+        return True
