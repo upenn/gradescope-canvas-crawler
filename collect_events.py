@@ -5,8 +5,11 @@ import datetime
 import os
 import hashlib
 import yaml
+from canvasapi import Canvas
 
 from pyscope.account import GSAccount, GSCourse
+
+from pycanvas.pycanvas import get_quizzes, get_modules, get_module_items
 
 
 def login(email: str , pwd: str) -> GSAccount:
@@ -140,13 +143,26 @@ def crawl(email:str, pwd:str, sem, use_threads):
 if __name__ == "__main__":
     with open('config.yaml') as config_file:
         config = yaml.safe_load(config_file)
-        email = config["gs_login"]
-        pwd = config['gs_pwd']
-        use_threads = config['use_threads']
+
+        canvas_url = config['canvas']['site']
+        canvas_key = config['canvas']['api_key']
+
+        email = config['gradescope']["gs_login"]
+        pwd = config['gradescope']['gs_pwd']
+        use_threads = config['gradescope']['use_threads']
 
         sem = None
         if sem in config:
             sem = config['semester']
 
-        with open("gradescope.ics", "w") as f:
-            f.writelines(crawl(email, pwd, sem, use_threads))
+        # with open("gradescope.ics", "w") as f:
+        #     f.writelines(crawl(email, pwd, sem, use_threads))
+
+        canvas = Canvas(canvas_url, canvas_key)
+        for course in config['canvas']['course_ids']:
+            the_course = canvas.get_course(course)
+
+            quizzes = get_quizzes(the_course)
+            modules = get_modules(the_course)
+            module_items = get_module_items(the_course)
+

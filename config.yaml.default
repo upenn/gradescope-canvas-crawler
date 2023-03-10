@@ -1,4 +1,12 @@
-gs_login: 'a@b.com'
-gs_pwd: 'letmein123!'
+gradescope:
+  gs_login: 'a@b.com'
+  gs_pwd: 'letmein123!'
+  use_threads: false
 
-use_threads: false
+canvas:
+  api_key: 123456
+  site: canvas.edu
+  course_ids:
+  - 123
+  - 456
+  
