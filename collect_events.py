@@ -180,8 +180,8 @@ if __name__ == "__main__":
              f.writelines(fetch_gradescope_events(email, pwd, sem, use_threads))
 
         canvas = CanvasConnection(canvas_url, canvas_key)
-        for course in config['canvas']['course_ids']:
-            the_course = canvas.get_course(course)
+        for the_course in canvas.get_course_list():#config['canvas']['course_ids']:
+            #the_course = canvas.get_course(course)
 
             quizzes = canvas.get_quizzes(the_course)
             modules = canvas.get_modules(the_course)

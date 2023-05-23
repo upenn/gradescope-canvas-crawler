@@ -21,12 +21,19 @@ from course_info import CourseApi
 class CanvasConnection(CourseApi):
     def __init__(self, canvas_url, canvas_key):
         self.canvas = Canvas(canvas_url, canvas_key)
+
+        self.courses = [course for course in self.canvas.get_courses()]
+        for i in self.courses:
+            print(i)
         return
+    
+    def get_course_list(self):
+        return self.courses
     
     def get_course(self, course_id):
         return self.canvas.get_course(course_id)
 
-    def get_quizzes(course):
+    def get_quizzes(self, course):
         quizzes = []
         for quiz in course.get_quizzes():
             quizzes.append({'id':quiz.id,'title':quiz.title,'published':quiz.published,\
@@ -34,7 +41,7 @@ class CanvasConnection(CourseApi):
 
         return pd.DataFrame(quizzes)
 
-    def get_modules(course):
+    def get_modules(self, course):
         modules = []
         for module in course.get_modules():
             try:
@@ -53,7 +60,7 @@ class CanvasConnection(CourseApi):
 
         return pd.DataFrame(modules)
 
-    def get_module_items(course):
+    def get_module_items(self, course):
         module_items = []
         for module in course.get_modules():
             for item in module.get_module_items():
@@ -78,7 +85,7 @@ class CanvasConnection(CourseApi):
                 module_items.append(details)
         return pd.DataFrame(module_items)
 
-    def get_matching_module_url(module_items, index, typ):
+    def get_matching_module_url(self, module_items, index, typ):
         matches = module_items[module_items['title'].apply(lambda x: x.startswith(index))]
         if len(matches):
             matches = matches[matches['type'] == typ]
