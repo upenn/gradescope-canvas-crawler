@@ -1,15 +1,36 @@
+#####################################################################################################################
+##
+## Course Event Crawler
+##
+## 
+## Gradescope components are derived from Sagar Reddy Patil's Gradescope iCalendar Converter, 
+## https://github.com/sagarredypatil/gradescope-ics, which also leverages the original Gradescope codebase from 
+## Anton Pozharski, https://github.com/apozharski/gradescope-api.
+##
+## All original license terms apply.
+##
+## Modifications by Zack Ives and are licensed under the Apache License 2.0
+##
+## Usage:
+##  * Update config.yaml (copied from config.yaml.default) to include a Gradescope user ID and password.
+##  * In Canvas, go to Settings, User Settings and add a New Access Token.  Copy the API key into config.yaml
+##  * Copy the course IDs of any Canvas courses you'd like to add
+##
+#####################################################################################################################
+
+
 from threading import Thread
 from pyscope import pyscope as gs
+from pycanvas.pycanvas import CanvasConnection
 from ics import Calendar, Event
 import datetime
 import os
 import hashlib
 import yaml
-from canvasapi import Canvas
 
 from pyscope.account import GSAccount, GSCourse
 
-from pycanvas.pycanvas import get_quizzes, get_modules, get_module_items
+#from pycanvas.pycanvas import get_quizzes, get_modules, get_module_items
 
 
 def login(email: str , pwd: str) -> GSAccount:
@@ -98,7 +119,7 @@ def get_course_events(course: GSCourse, all_events: list):
     return
 
 
-def crawl(email:str, pwd:str, sem, use_threads):
+def fetch_gradescope_events(email:str, pwd:str, sem, use_threads):
     acct: GSAccount = login(email, pwd)
     courses = get_courses(acct)
 
@@ -155,14 +176,14 @@ if __name__ == "__main__":
         if sem in config:
             sem = config['semester']
 
-        # with open("gradescope.ics", "w") as f:
-        #     f.writelines(crawl(email, pwd, sem, use_threads))
+        with open("gradescope.ics", "w") as f:
+             f.writelines(fetch_gradescope_events(email, pwd, sem, use_threads))
 
-        canvas = Canvas(canvas_url, canvas_key)
+        canvas = CanvasConnection(canvas_url, canvas_key)
         for course in config['canvas']['course_ids']:
             the_course = canvas.get_course(course)
 
-            quizzes = get_quizzes(the_course)
-            modules = get_modules(the_course)
-            module_items = get_module_items(the_course)
+            quizzes = canvas.get_quizzes(the_course)
+            modules = canvas.get_modules(the_course)
+            module_items = canvas.get_module_items(the_course)
 

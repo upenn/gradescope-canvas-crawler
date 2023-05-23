@@ -1,4 +1,5 @@
 from enum import Enum
+from course_info import Person
 
 class GSRole(Enum):
     STUDENT = 0
@@ -34,11 +35,13 @@ class GSRole(Enum):
         pass
     
     
-class GSPerson():
+class GSPerson(Person):
     def __init__(self, name, data_id, email, role, submissions, linked):
         self.name = name
         self.data_id = data_id
+        self.student_id = data_id
         self.email = email
+        self.emails = [email]
         self.role = GSRole.from_str(role)
         self.linked = linked
         self.submissions = submissions

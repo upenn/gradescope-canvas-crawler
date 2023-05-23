@@ -1,3 +1,5 @@
+from course_info import Assignment
+
 import requests
 from bs4 import BeautifulSoup
 try:
@@ -6,12 +8,13 @@ except ModuleNotFoundError:
    from .question import GSQuestion
 import json
 
-class GSAssignment():
+class GSAssignment(Assignment):
 
     def __init__(self, name, aid, points, percent_graded, complete, regrades_on, course):
         '''Create a assignment object'''
         self.name = name
         self.aid = aid
+        self.assignment_uuid = aid
         self.points = points
         self.percent_graded = percent_graded
         self.complete = complete

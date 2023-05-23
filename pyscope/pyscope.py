@@ -14,13 +14,14 @@ try:
 except ModuleNotFoundError:
     from .course import GSCourse
 
+from course_info import CourseApi
 
 class ConnState(Enum):
     INIT = 0
     LOGGED_IN = 1
 
 
-class GSConnection:
+class GSConnection(CourseApi):
     """The main connection class that keeps state about the current connection."""
 
     def __init__(self):
