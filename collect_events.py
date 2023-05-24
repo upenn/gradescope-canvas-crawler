@@ -27,6 +27,7 @@ import datetime
 import os
 import hashlib
 import yaml
+import logging
 
 from pyscope.account import GSAccount, GSCourse
 
@@ -183,7 +184,11 @@ if __name__ == "__main__":
         for the_course in canvas.get_course_list():#config['canvas']['course_ids']:
             #the_course = canvas.get_course(course)
 
+            print (the_course.name)
             quizzes = canvas.get_quizzes(the_course)
+            print(quizzes)
             modules = canvas.get_modules(the_course)
+            print(modules)
             module_items = canvas.get_module_items(the_course)
+            print(module_items)
 

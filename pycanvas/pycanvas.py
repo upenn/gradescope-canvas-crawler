@@ -15,8 +15,10 @@
 #####################################################################################################################
 
 from canvasapi import Canvas
+from canvasapi.exceptions import *
 import pandas as pd
 from course_info import CourseApi
+import logging
 
 class CanvasConnection(CourseApi):
     def __init__(self, canvas_url, canvas_key):
@@ -35,9 +37,13 @@ class CanvasConnection(CourseApi):
 
     def get_quizzes(self, course):
         quizzes = []
-        for quiz in course.get_quizzes():
-            quizzes.append({'id':quiz.id,'title':quiz.title,'published':quiz.published,\
-                'unlock_at': quiz.unlock_at, 'due_at': quiz.due_at, 'lock_at': quiz.lock_at, 'published': quiz.published})
+        try:
+            for quiz in course.get_quizzes():
+                quizzes.append({'id':quiz.id,'title':quiz.title,'published':quiz.published,\
+                    'unlock_at': quiz.unlock_at, 'due_at': quiz.due_at, 'lock_at': quiz.lock_at, 'published': quiz.published})
+        except ResourceDoesNotExist:
+            logging.warning('No quizzes found for course %s', course)
+            pass
 
         return pd.DataFrame(quizzes)
 
@@ -64,15 +70,26 @@ class CanvasConnection(CourseApi):
         module_items = []
         for module in course.get_modules():
             for item in module.get_module_items():
-                details = {
-                    'module_id': module.id,
-                    'module_name': module.name,
-                    'id': item.id,
-                    'title': item.title,
-                    # 'published': item.published,
-                    'type': item.type,
-                    'html_url': item.html_url
-                }
+                try:
+                    details = {
+                        'module_id': module.id,
+                        'module_name': module.name,
+                        'id': item.id,
+                        'title': item.title,
+                        # 'published': item.published,
+                        'type': item.type,
+                        'html_url': item.html_url
+                    }
+                except AttributeError:
+                    details = {
+                        'module_id': module.id,
+                        'module_name': module.name,
+                        'id': item.id,
+                        'title': item.title,
+                        # 'published': item.published,
+                        'type': item.type
+                    }
+
                 if item.type == 'Quiz':
                     details['url'] = item.url
                 if item.type == 'ExternalUrl':
