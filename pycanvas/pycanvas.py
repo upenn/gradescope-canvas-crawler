@@ -187,13 +187,6 @@ class CanvasConnection(CourseApi):
             del(ret[-1]['_requester'])
             del(ret[-1]['description'])
             del(ret[-1]['secure_params'])
-            # ret.append({
-            #     'id': assignment.id,
-            #     'name': assignment.name,
-            #     'points': assignment.points_possible,
-            #     'unlock': assignment.unlock_at,
-            #     'due': assignment.due_at,
-            # })
         return ret
             
     def get_student_summaries_df(self, course: Course) -> pd.DataFrame:
