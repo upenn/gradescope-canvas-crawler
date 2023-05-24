@@ -22,6 +22,7 @@
 from threading import Thread
 from pyscope import pyscope as gs
 from pycanvas.pycanvas import CanvasConnection
+from pycanvas.canvas_status import CanvasStatus
 from ics import Calendar, Event
 import datetime
 import os
@@ -183,76 +184,89 @@ if __name__ == "__main__":
         #      f.writelines(fetch_gradescope_events(email, pwd, sem, use_threads))
 
         canvas = CanvasConnection(canvas_url, canvas_key)
-        items = 3
 
-        canvas_courses = canvas.get_course_list_df()
-        all_assignments = []
-        all_students = []
-        all_submissions = []
-        all_student_summaries = []
-
-        rightnow = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-        for the_course in canvas.get_course_list_objs():#config['canvas']['course_ids']:
-            print (the_course.name)
-
-            if (the_course.end_at and \
-            (pd.to_datetime(the_course.start_at, utc=True) <= rightnow and rightnow <= pd.to_datetime(the_course.end_at, utc=True))):
-
-                print ('{} through {}'.format(the_course.start_at, the_course.end_at))
-                # quizzes = canvas.get_quizzes_df(the_course)
-                # if len(quizzes):
-                #     quizzes['course_id'] = the_course.id
-                #     print ('\nQuizzes:')
-                #     print(quizzes)
-
-                assignments = canvas.get_assignments_df(the_course)
-                if len(assignments):
-                    assignments['course_id'] = the_course.id
-                    print ('\nAssignments:')
-                    print(assignments)
-                    all_assignments.append(assignments)
-
-                # modules = canvas.get_modules_df(the_course)
-                # if len(modules):
-                #     modules['course_id'] = the_course.id
-                #     print ('\nModules:')
-                #     print(modules)
-                # module_items = canvas.get_module_items_df(the_course)
-                # if len(module_items):
-                #     print ('\nItems in modules:')
-                #     print(module_items)
-
-                # Todo: Get student status
-                student_summaries = canvas.get_student_summaries_df(the_course)
-                if len(student_summaries):
-                    print ('\nStudent summaries:')
-                    print (student_summaries)
-                    all_student_summaries.append(student_summaries)
-
-                students = canvas.get_students_df(the_course)
-                if len(students):
-                    students['course_id'] = the_course.id
-                    print ('\nStudents:')
-                    print (students)
-                    all_students.append(students)
-
-                assignments = canvas.get_assignment_submissions_df(the_course)
-                if len(assignments):
-                    assignments['course_id'] = the_course.id
-                    print ('\nAssignment submissions:')
-                    print(assignments)
-                    all_submissions.append(assignments)
-
-                items -= 1
-                if (items < 0):
-                    break
-
+        canvas_courses, all_students, all_assignments, all_submissions, all_student_summaries = CanvasStatus.get_course_info(canvas, config['canvas']['course_ids'])
         canvas_courses.to_csv('canvas_courses.csv',index=False)
         if len(all_student_summaries):
-           pd.concat(all_student_summaries).to_csv('student_summaries.csv', index=False)
+           pd.concat(all_student_summaries).to_csv('canvas_student_summaries.csv', index=False)
         if len(all_students):
-            pd.concat(all_students).to_csv('students.csv', index=False)
+            pd.concat(all_students).to_csv('canvas_students.csv', index=False)
         if len(all_assignments):
-            pd.concat(all_assignments).to_csv('assignments.csv', index=False)
+            pd.concat(all_assignments).to_csv('canvas_assignments.csv', index=False)
         if len(all_submissions):
-            pd.concat(all_submissions).to_csv('submissions.csv', index=False)
+            pd.concat(all_submissions).to_csv('canvas_submissions.csv', index=False)
+
+
+        # items = 3
+
+        # canvas_courses = canvas.get_course_list_df()
+        # all_assignments = []
+        # all_students = []
+        # all_submissions = []
+        # all_student_summaries = []
+
+        # rightnow = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+        # for the_course in canvas.get_course_list_objs():#config['canvas']['course_ids']:
+        #     print (the_course.name)
+
+        #     if (the_course.end_at and \
+        #     (pd.to_datetime(the_course.start_at, utc=True) <= rightnow and rightnow <= pd.to_datetime(the_course.end_at, utc=True))):
+
+        #         print ('{} through {}'.format(the_course.start_at, the_course.end_at))
+        #         # quizzes = canvas.get_quizzes_df(the_course)
+        #         # if len(quizzes):
+        #         #     quizzes['course_id'] = the_course.id
+        #         #     print ('\nQuizzes:')
+        #         #     print(quizzes)
+
+        #         assignments = canvas.get_assignments_df(the_course)
+        #         if len(assignments):
+        #             assignments['course_id'] = the_course.id
+        #             print ('\nAssignments:')
+        #             print(assignments)
+        #             all_assignments.append(assignments)
+
+        #         # modules = canvas.get_modules_df(the_course)
+        #         # if len(modules):
+        #         #     modules['course_id'] = the_course.id
+        #         #     print ('\nModules:')
+        #         #     print(modules)
+        #         # module_items = canvas.get_module_items_df(the_course)
+        #         # if len(module_items):
+        #         #     print ('\nItems in modules:')
+        #         #     print(module_items)
+
+        #         # Todo: Get student status
+        #         student_summaries = canvas.get_student_summaries_df(the_course)
+        #         if len(student_summaries):
+        #             print ('\nStudent summaries:')
+        #             print (student_summaries)
+        #             all_student_summaries.append(student_summaries)
+
+        #         students = canvas.get_students_df(the_course)
+        #         if len(students):
+        #             students['course_id'] = the_course.id
+        #             print ('\nStudents:')
+        #             print (students)
+        #             all_students.append(students)
+
+        #         assignments = canvas.get_assignment_submissions_df(the_course)
+        #         if len(assignments):
+        #             assignments['course_id'] = the_course.id
+        #             print ('\nAssignment submissions:')
+        #             print(assignments)
+        #             all_submissions.append(assignments)
+
+        #         items -= 1
+        #         if (items < 0):
+        #             break
+
+        # canvas_courses.to_csv('canvas_courses.csv',index=False)
+        # if len(all_student_summaries):
+        #    pd.concat(all_student_summaries).to_csv('student_summaries.csv', index=False)
+        # if len(all_students):
+        #     pd.concat(all_students).to_csv('students.csv', index=False)
+        # if len(all_assignments):
+        #     pd.concat(all_assignments).to_csv('assignments.csv', index=False)
+        # if len(all_submissions):
+        #     pd.concat(all_submissions).to_csv('submissions.csv', index=False)

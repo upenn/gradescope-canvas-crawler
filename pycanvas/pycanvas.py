@@ -185,6 +185,8 @@ class CanvasConnection(CourseApi):
         for assignment in assignments:
             ret.append(vars(assignment))
             del(ret[-1]['_requester'])
+            del(ret[-1]['description'])
+            del(ret[-1]['secure_params'])
             # ret.append({
             #     'id': assignment.id,
             #     'name': assignment.name,
