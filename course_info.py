@@ -50,26 +50,29 @@ class CourseApi:
         return pd.DataFrame(self.get_course_list())
 
     @abstractmethod    
-    def get_assignments(self) -> List[Assignment]:
+    def get_assignments(self, course) -> List[Assignment]:
          raise NotImplementedError()
     
-    def get_assignments_df(self) -> pd.DataFrame:
-        return pd.DataFrame(self.get_assignments())
+    def get_assignments_df(self, course) -> pd.DataFrame:
+        return pd.DataFrame(self.get_assignments(course))
 
     @abstractmethod
-    def get_quizzes(self) -> List[Assignment]:
+    def get_quizzes(self, course) -> List[Assignment]:
         pass
 
+    def get_quizzes_df(self, course) -> pd.DataFrame:
+        return self.get_quizzes(course)
+
     @abstractmethod
-    def get_students(self) -> List[Person]:
+    def get_students(self, course) -> List[Person]:
         raise NotImplementedError()
  
-    def get_students_df(self) -> pd.DataFrame:
-        return pd.DataFrame(self.get_students())
+    def get_students_df(self, course) -> pd.DataFrame:
+        return pd.DataFrame(self.get_students(course))
 
  
     @abstractmethod
-    def get_instructors(self) -> List[Person]:
+    def get_instructors(self, course) -> List[Person]:
         raise NotImplementedError()
 
     def get_instructors_df(self) -> pd.DataFrame:

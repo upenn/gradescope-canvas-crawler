@@ -177,18 +177,46 @@ if __name__ == "__main__":
         if sem in config:
             sem = config['semester']
 
-        with open("gradescope.ics", "w") as f:
-             f.writelines(fetch_gradescope_events(email, pwd, sem, use_threads))
+        # with open("gradescope.ics", "w") as f:
+        #      f.writelines(fetch_gradescope_events(email, pwd, sem, use_threads))
 
         canvas = CanvasConnection(canvas_url, canvas_key)
+        items = 3
         for the_course in canvas.get_course_list():#config['canvas']['course_ids']:
             #the_course = canvas.get_course(course)
 
             print (the_course.name)
-            quizzes = canvas.get_quizzes(the_course)
-            print(quizzes)
-            modules = canvas.get_modules(the_course)
-            print(modules)
-            module_items = canvas.get_module_items(the_course)
-            print(module_items)
 
+            quizzes = canvas.get_quizzes_df(the_course)
+            if len(quizzes):
+                print ('\nQuizzes:')
+                print(quizzes)
+
+            assignments = canvas.get_assignments_df(the_course)
+            if len(assignments):
+                print ('\nAssignments:')
+                print(assignments)
+
+            # modules = canvas.get_modules_df(the_course)
+            # if len(modules):
+            #     print ('\nModules:')
+            #     print(modules)
+            # module_items = canvas.get_module_items_df(the_course)
+            # if len(module_items):
+            #     print ('\nItems in modules:')
+            #     print(module_items)
+
+            # Todo: Get student status
+            student_summaries = canvas.get_student_summaries_df(the_course)
+            if len(student_summaries):
+                print ('\nStudents:')
+                print (student_summaries)
+
+            students = canvas.get_students_df(the_course)
+            if len(students):
+                print ('\nStudents:')
+                print (students)
+
+            # items -= 1
+            # if (items < 0):
+            #     break
