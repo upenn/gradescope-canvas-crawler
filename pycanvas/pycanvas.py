@@ -29,9 +29,7 @@ class CanvasConnection(CourseApi):
     def __init__(self, canvas_url, canvas_key):
         self.canvas = Canvas(canvas_url, canvas_key)
 
-        self.courses = [course for course in self.canvas.get_courses()]
-        for i in self.courses:
-            print(i)
+        self.get_course_list_full()
         return
     
     def _get_paginated(the_list, paginated: PaginatedList):
@@ -40,7 +38,35 @@ class CanvasConnection(CourseApi):
 
         return the_list
     
-    def get_course_list(self) -> List[Course]:
+    def get_course_list(self) -> List[Dict]:
+        return self.courses
+
+    def get_course_list_objs(self) -> List[Course]:
+        return self.course_objs
+    
+    def get_course_list_df(self) -> pd.DataFrame:
+        return pd.DataFrame(self.get_course_list())
+    
+    def get_course_list_full(self) -> pd.DataFrame:
+        course_list = []
+        CanvasConnection._get_paginated(course_list, self.canvas.get_courses(per_page=100))
+        self.courses = []
+        self.course_objs = []
+        for course in course_list:
+            self.course_objs.append(course)
+            self.courses.append({
+                'id': course.id,
+                'name': course.name,
+                'start_at': course.start_at,
+                'end_at': course.end_at,
+                'workflow_state': course.workflow_state,
+                'course_code': course.course_code,
+                # 'sis_course_id': course.sis_course_id,
+                # 'integration_id': course.integration_id,
+                # 'hide_final_grades': course.hide_final_grades,
+                'is_public': course.is_public,
+           })
+            
         return self.courses
     
     def get_course(self, course_id: str) -> Course:
@@ -157,13 +183,15 @@ class CanvasConnection(CourseApi):
         ret = []
         CanvasConnection._get_paginated(assignments, course.get_assignments(per_page=100))
         for assignment in assignments:
-            ret.append({
-                'id': assignment.id,
-                'name': assignment.name,
-                'points': assignment.points_possible,
-                'unlock': assignment.unlock_at,
-                'due': assignment.due_at,
-            })
+            ret.append(vars(assignment))
+            del(ret[-1]['_requester'])
+            # ret.append({
+            #     'id': assignment.id,
+            #     'name': assignment.name,
+            #     'points': assignment.points_possible,
+            #     'unlock': assignment.unlock_at,
+            #     'due': assignment.due_at,
+            # })
         return ret
             
     def get_student_summaries_df(self, course: Course) -> pd.DataFrame:
@@ -172,12 +200,22 @@ class CanvasConnection(CourseApi):
         """
         try:
             the_list = []
+            summaries = []
             CanvasConnection._get_paginated(the_list, course.get_course_level_student_summary_data(per_page=100))
-            return pd.DataFrame(the_list)
+            for item in the_list:
+                summaries.append(vars(item))
+                del(summaries[-1]['_requester'])
+            ret = pd.DataFrame(summaries)
+            if 'tardiness_breakdown' in ret.columns:
+                return ret.join(pd.json_normalize(ret['tardiness_breakdown'])).drop(['tardiness_breakdown'], axis=1)
+            else:
+                return ret
         except Forbidden:
             return pd.DataFrame()
         except ResourceDoesNotExist:
             return pd.DataFrame()
+
+            
 
     def get_students(self, course) -> List[Dict]:
         students = []
@@ -185,28 +223,8 @@ class CanvasConnection(CourseApi):
         try:
             CanvasConnection._get_paginated(students, course.get_users(enrollment_type=['student'], per_page=100))
             for student in students:
-                print (student.__repr__())
-                if student.name:
-                    stud = {
-                        'id': student.id,
-                        'name': student.name,
-                        'sortable_name': student.sortable_name,
-                        'short_name': student.short_name,
-                        # 'sis_user_id': student.sis_user_id,
-                        # 'sis_login_id': student.sis_login_id,
-#                        'login_id': student.login_id,
-#                        'enrollments': student.enrollments
-                    }
-                    rep = student.__repr__()
-                    if 'email=' in rep:
-                        stud['email'] = student.email
-                    if 'sis_user_id=' in rep:
-                        stud['sis_user_id='] = student.sis_user_id
-                    if 'sis_login_id=' in rep:
-                        stud['sis_login_id'] = student.sis_login_id
-                    if 'login_id=' in rep:
-                        stud['login_id'] = student.login_id
-                    ret.append(stud)
+                ret.append(vars(student))
+                del(ret[-1]['_requester'])
         except ResourceDoesNotExist:
             logging.warning('No students found for course %s', course)
             pass
@@ -215,3 +233,27 @@ class CanvasConnection(CourseApi):
             pass
     
         return ret
+    
+    def get_assignment_submissions(self, course: Course) -> List[Dict]:
+        """
+        Returns a list of dictionaries containing the assignment submissions for a course.
+        """
+        ret = []
+        assignments = []
+        CanvasConnection._get_paginated(assignments, course.get_assignments(per_page=100))
+        try:
+            for assignment in assignments:
+                submissions = []
+                CanvasConnection._get_paginated(submissions, assignment.get_submissions(per_page=100))
+                for submission in submissions:
+                    ret.append(vars(submission))
+                    ret[-1]['assignment_id'] = assignment.id
+                    del(ret[-1]['_requester'])
+        except ResourceDoesNotExist:
+            pass
+        except Forbidden:
+            pass
+        return ret
+    
+    def get_assignment_submissions_df(self, course: Course) -> pd.DataFrame:
+        return pd.DataFrame(self.get_assignment_submissions(course))
