@@ -82,7 +82,3 @@ We leverage and adapt the `pyscope` API, which we have updated to 2023 Gradescop
 
 We leverage the Canvas LTI APIs from the U of Florida library.  Substantial layering over these libraries has been added in the pycanvas package.
 
-## Flask App
-
-There's also a not-up-to-date Flask app that can be called like this:
-`http://0.0.0.0:whatever/gradescope?email=<write email here>&pwd=<write password here>`
