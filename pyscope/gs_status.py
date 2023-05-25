@@ -17,6 +17,7 @@
 from pyscope import pyscope as gs
 from pyscope.pyscope import GSConnection
 from pyscope.pyscope import GSAccount, GSCourse
+from course_info import CourseWrapper
 import pandas as pd
 from datetime import datetime
 import pytz
@@ -24,24 +25,24 @@ import logging
 
 from typing import Tuple, Any, List, Callable
 
-class GradescopeStatus(object):
-    def __init__(self, email, pwd, semester):
+class GradescopeStatus(CourseWrapper):
+    def __init__(self, email: str, pwd: str, semesters: list):
         conn = gs.GSConnection()
 
         print("Logging into Gradescope as %s..."%email)
-        if not conn.login(email, pwd):
+        if not conn.login(email, pwd, semesters):
             print ('Error: Failed to log in!')
             return None
 
+        self.sem = semesters
         # Get Account
-        success = conn.get_account()
+        success = conn.get_account(semesters)
         if not success:
             print("Error: Failed to get account!")
             return None
 
         self.gs = conn
         self.account = conn.account
-        self.sem = semester
 
     def get_courses(self) -> List[GSCourse]:
         """
@@ -132,9 +133,6 @@ class GradescopeStatus(object):
         for the_course in self.gs.get_course_list():
             print (the_course.name)
 
-            if self.sem and the_course.year != self.sem:
-                continue
-
             students = self.gs.get_students_df(the_course)
             if len(students):
                 students['course_id'] = the_course.cid
@@ -151,7 +149,7 @@ class GradescopeStatus(object):
 
             assignments = self.gs.get_assignment_submissions_df(the_course)
             if len(assignments):
-                assignments['course_id'] = the_course.id
+                assignments['course_id'] = the_course.cid
                 print ('\nAssignment submissions:')
                 print(assignments)
                 all_submissions.append(assignments)

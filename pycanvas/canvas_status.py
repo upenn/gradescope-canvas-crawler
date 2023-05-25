@@ -15,6 +15,7 @@
 #####################################################################################################################
 
 from pycanvas.pycanvas import CanvasConnection
+from course_info import CourseWrapper
 import pandas as pd
 from datetime import datetime
 import pytz
@@ -22,7 +23,7 @@ import logging
 
 from typing import Tuple, Any, List
 
-class CanvasStatus(object):
+class CanvasStatus(CourseWrapper):
     def __init__(self, canvas_url, canvas_key, filter_course_ids: List[str]):
         self.canvas = CanvasConnection(canvas_url, canvas_key)
         self.course_id_list = filter_course_ids

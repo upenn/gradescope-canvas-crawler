@@ -15,7 +15,7 @@
 #####################################################################################################################
 
 from abc import ABCMeta, abstractmethod
-from typing import List
+from typing import List, Tuple, Any
 from datetime import datetime
 
 import pandas as pd
@@ -88,7 +88,7 @@ class CourseApi:
     
     @abstractmethod
     def get_assignment_submissions(self, course) -> List[Assignment]:
-        raise NotImplementedError
+        raise NotImplementedError()
     
     def get_assignment_submissions_df(self, course) -> pd.DataFrame:
         return pd.DataFrame(self.get_assignment_submissions(course))
@@ -101,4 +101,11 @@ class CourseApi:
     # def get_instructors_df(self) -> pd.DataFrame:
     #     return pd.DataFrame(self.get_instructors())
 
-    
+class CourseWrapper(object):
+    @abstractmethod
+    def get_course_info(self) -> Tuple[Any]:
+        """ 
+        Fetch a tuple of lists of dataframes for each course, including students, assignments, submissions.
+        """
+        raise NotImplementedError()
+

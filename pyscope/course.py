@@ -123,6 +123,9 @@ class GSCourse:
 
             if not name:
                 name = row.find("div", class_="assignments--rowTitle")
+                assign_id = name.find('a').get('href').split('/')[-1]
+            else:
+                assign_id = name.find('a').get('href').split('/')[-1]
             name = name.text
 
             timeline_cols = row.find_all("td", {"class": "table--hiddenColumn"})
@@ -144,6 +147,7 @@ class GSCourse:
                 due = datetime.strptime(due, datefmt)
 
             assignments.append( {
+                    "id": assign_id,
                     "name": name,
                     "assigned": assigned,
                     "due": due,

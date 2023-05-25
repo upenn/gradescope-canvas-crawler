@@ -6,6 +6,12 @@ Our goal is a single aggregation point for tracking student progress (and trigge
 
 We pull from both the Gradescope and Canvas APIs.
 
+**To-Dos**:
+* Add assignment Download CSV: `gradescope.com/courses/{number}/gradebook.csv`?
+* Add download from Review Similarity for each assignment?
+* Download Extensions?
+* Generate ics for all items this semester?
+
 ## Gradescope APIs
 
 We leverage and adapt the `pyscope` API, which we have updated to 2023 Gradescope with extensions.  Gradescope does not really have an external API, but through some clever work by prior authors, HTML crawling is used to pull the important data and wrap it in objects.
@@ -18,11 +24,6 @@ We leverage and adapt the `pyscope` API, which we have updated to 2023 Gradescop
 * New `course.get_roster()` API call.
 * Roster extraction required updates to match the 2023 HTML formatting.
 * Standardized API with Canvas modules.
-
-**To-Dos**:
-* Add assignment Download CSV: `gradescope.com/courses/{number}/gradebook.csv`
-* Add download from Review Similarity for each assignment?
-* Download Extensions?
 
 ## Canvas APIs
 

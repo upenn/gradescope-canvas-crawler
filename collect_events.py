@@ -39,30 +39,31 @@ if __name__ == "__main__":
         pwd = config['gradescope']['gs_pwd']
         use_threads = config['gradescope']['use_threads']
 
-        sem = None
-        if sem in config:
-            sem = config['semester']
+        do_gs = True
+        do_canvas = False
 
-        canvas = CanvasStatus(canvas_url, canvas_key, config['canvas']['course_ids'])
+        if do_canvas:
+            canvas = CanvasStatus(canvas_url, canvas_key, config['canvas']['course_ids'])
 
-        canvas_courses, all_students, all_assignments, all_submissions, all_student_summaries = canvas.get_course_info()
-        canvas_courses.to_csv('canvas_courses.csv',index=False)
-        if len(all_student_summaries):
-           pd.concat(all_student_summaries).to_csv('canvas_student_summaries.csv', index=False)
-        if len(all_students):
-            pd.concat(all_students).to_csv('canvas_students.csv', index=False)
-        if len(all_assignments):
-            pd.concat(all_assignments).to_csv('canvas_assignments.csv', index=False)
-        if len(all_submissions):
-            pd.concat(all_submissions).to_csv('canvas_submissions.csv', index=False)
+            canvas_courses, all_students, all_assignments, all_submissions, all_student_summaries = canvas.get_course_info()
+            canvas_courses.to_csv('canvas_courses.csv',index=False)
+            if len(all_student_summaries):
+                pd.concat(all_student_summaries).to_csv('canvas_student_summaries.csv', index=False)
+            if len(all_students):
+                pd.concat(all_students).to_csv('canvas_students.csv', index=False)
+            if len(all_assignments):
+                pd.concat(all_assignments).to_csv('canvas_assignments.csv', index=False)
+            if len(all_submissions):
+                pd.concat(all_submissions).to_csv('canvas_submissions.csv', index=False)
 
-        gs = GradescopeStatus(email, pwd, sem)
-        gs_courses, gs_students, gs_assignments, gs_submissions = gs.get_course_info()
-        gs_courses.to_csv('gs_courses.csv',index=False)
-        if len(gs_students):
-            pd.concat(gs_students).to_csv('gs_students.csv', index=False)
-        if len(gs_assignments):
-            pd.concat(gs_assignments).to_csv('gs_assignments.csv', index=False)
-        if len(gs_submissions):
-            pd.concat(gs_submissions).to_csv('gs_submissions.csv', index=False)
+        if do_gs:
+            gs = GradescopeStatus(email, pwd, config['gradescope']['semesters'])
+            gs_courses, gs_students, gs_assignments, gs_submissions = gs.get_course_info()
+            gs_courses.to_csv('gs_courses.csv',index=False)
+            if len(gs_students):
+                pd.concat(gs_students).to_csv('gs_students.csv', index=False)
+            if len(gs_assignments):
+                pd.concat(gs_assignments).to_csv('gs_assignments.csv', index=False)
+            if len(gs_submissions):
+                pd.concat(gs_submissions).to_csv('gs_submissions.csv', index=False)
 

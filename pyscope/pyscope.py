@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from enum import Enum
-
+from io import StringIO
 from typing import List, Dict, Any
 import logging
 import pandas as pd
@@ -32,7 +32,7 @@ class GSConnection(CourseApi):
         self.state = ConnState.INIT
         self.account = None
 
-    def login(self, email, pswd):
+    def login(self, email, pswd, semesters):
         """
         Login to gradescope using email and password.
         Note that the future commands depend on account privilages.
@@ -59,12 +59,12 @@ class GSConnection(CourseApi):
             if login_resp.history[0].status_code == requests.codes.found:
                 self.state = ConnState.LOGGED_IN
                 self.account = GSAccount(email, self.session)
-                self.get_account()
+                self.get_account(semesters)
                 return True
         else:
             return False
 
-    def get_account(self):
+    def get_account(self, semesters):
         """
         Gets and parses account data after login. Note will return false if we are not in a logged in state, but
         this is subject to change.
@@ -100,9 +100,11 @@ class GSConnection(CourseApi):
             if year is None:
                 raise "No year"
                 return False  # Should probably raise an exception.
-            self.account.add_class(
-                cid, name, shortname, year, instructor=False
-            )
+            
+            if semesters is None or year in semesters:
+                self.account.add_class(
+                    cid, name, shortname, year, instructor=False
+                )
 
         student_courses = parsed_account_resp.find(
             "h1", class_="pageHeading", string="Student Courses"
@@ -127,7 +129,8 @@ class GSConnection(CourseApi):
             if year is None:
                 raise "No year"
                 return False  # Should probably raise an exception.
-            self.account.add_class(cid, name, shortname, year)
+            if semesters is None or year in semesters:
+                self.account.add_class(cid, name, shortname, year)
 
         return True
 
@@ -157,11 +160,21 @@ class GSConnection(CourseApi):
     def get_students(self, course: GSCourse) -> List[Dict]:
         return list(course.get_roster().values())
     
-    # def get_students_df(self, course: GSCourse) -> pd.DataFrame:
-    #     return super().get_students_df(course)
+    def get_students_df(self, course: GSCourse) -> pd.DataFrame:
+        ret = pd.DataFrame(self.get_students(course))
+        ret.columns = ['sid', 'name', 'emails']
+        return ret
 
     def get_assignment_submissions(self, course: GSCourse) -> List[Dict]:
-        return
+        assignments = []
+        for assignment in course.get_assignments():
+            scores = self.session.get('https://gradescope.com/courses/' + course.cid + '/assignments/' + assignment['id'] + '/scores.csv').text
+
+            print(scores)
+
+            assignments.append(pd.read_csv(StringIO(scores)))
+            assignments[-1]['course_id'] = course.cid
+        return pd.concat(assignments)
     
     # def get_assignment_submissions_df(self, course: GSCourse) -> pd.DataFrame:
     #     return super().get_assignment_submissions_df(course)
