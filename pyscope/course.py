@@ -133,7 +133,7 @@ class GSCourse:
             assigned = timeline_cols[0].text
             due = timeline_cols[1].text
 
-            if assigned is None or assigned == "":
+            if assigned is None or assigned == "" or 'false' in assigned:
                 assigned = None
             else:
                 assigned = datetime.strptime(assigned, datefmt)
@@ -315,7 +315,7 @@ class GSCourse:
         for row in roster_table:
             name = row[0].text.rsplit(" ", 1)[0]
             data_id = row[0].find("button", class_="rosterCell--editIcon").get("data-id")
-            if len(row) == 6:
+            if len(row) >= 4 and row[2].find("option", selected="selected"):
                 email = row[1].text
                 role = row[2].find("option", selected="selected").text
                 submissions = int(row[3].text)
@@ -323,8 +323,12 @@ class GSCourse:
             else:
                 email = row[2].text
                 role = row[3].find("option", selected="selected").text
-                submissions = int(row[5].text)
-                linked = True if "statusIcon-active" in row[6].find("i").get("class") else False
+                if len(row[5].text):
+                    submissions = int(row[5].text)
+                    linked = True if "statusIcon-active" in row[6].find("i").get("class") else False
+                else:
+                    submissions = int(row[4].text)
+                    linked = True if "statusIcon-active" in row[5].find("i").get("class") else False
             # TODO Make types reasonable.
             self.roster[name] = GSPerson(name, data_id, email, role, submissions, linked)
         self.state.add(LoadedCapabilities.ROSTER)

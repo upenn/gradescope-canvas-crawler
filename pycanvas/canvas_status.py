@@ -23,21 +23,25 @@ import logging
 from typing import Tuple, Any, List
 
 class CanvasStatus(object):
+    def __init__(self, canvas_url, canvas_key, filter_course_ids: List[str]):
+        self.canvas = CanvasConnection(canvas_url, canvas_key)
+        self.course_id_list = filter_course_ids
+
         
-    def get_course_info(canvas: CanvasConnection, course_id_list: List[str]) -> Tuple[Any]:
-        canvas_courses = canvas.get_course_list_df()
+    def get_course_info(self) -> Tuple[Any]:
+        canvas_courses = self.canvas.get_course_list_df()
         all_assignments = []
         all_students = []
         all_submissions = []
         all_student_summaries = []
 
-        logging.debug('Getting course info from Canvas for {}'.format(course_id_list))
+        logging.debug('Getting course info from Canvas for {}'.format(self.course_id_list))
 
         rightnow = datetime.utcnow().replace(tzinfo=pytz.utc)
-        for the_course in canvas.get_course_list_objs():
+        for the_course in self.canvas.get_course_list_objs():
             print (the_course.name)
 
-            if course_id_list and len(course_id_list) and the_course.id not in course_id_list:
+            if self.course_id_list and len(self.course_id_list) and the_course.id not in self.course_id_list:
                 continue
 
             if (the_course.end_at and \
@@ -47,7 +51,7 @@ class CanvasStatus(object):
 
                 # OPTIONAL but not really needed since Quizzes are also Assignments?
                 if False:
-                    quizzes = canvas.get_quizzes_df(the_course)
+                    quizzes = self.canvas.get_quizzes_df(the_course)
                     if len(quizzes):
                         quizzes['course_id'] = the_course.id
                         print ('\nQuizzes:')
@@ -55,24 +59,24 @@ class CanvasStatus(object):
 
                 # OPTIONAL: do we want modules and module items?
                 if False:
-                    modules = canvas.get_modules_df(the_course)
+                    modules = self.canvas.get_modules_df(the_course)
                     if len(modules):
                         modules['course_id'] = the_course.id
                         print ('\nModules:')
                         print(modules)
-                    module_items = canvas.get_module_items_df(the_course)
+                    module_items = self.canvas.get_module_items_df(the_course)
                     if len(module_items):
                         print ('\nItems in modules:')
                         print(module_items)
 
-                students = canvas.get_students_df(the_course)
+                students = self.canvas.get_students_df(the_course)
                 if len(students):
                     students['course_id'] = the_course.id
                     print ('\nStudents:')
                     print (students)
                     all_students.append(students)
 
-                assignments = canvas.get_assignments_df(the_course)
+                assignments = self.canvas.get_assignments_df(the_course)
                 if len(assignments):
                     assignments['course_id'] = the_course.id
                     print ('\nAssignments:')
@@ -80,13 +84,13 @@ class CanvasStatus(object):
                     all_assignments.append(assignments)
 
                 # Get general student status, including late days etc
-                student_summaries = canvas.get_student_summaries_df(the_course)
+                student_summaries = self.canvas.get_student_summaries_df(the_course)
                 if len(student_summaries):
                     print ('\nStudent summaries:')
                     print (student_summaries)
                     all_student_summaries.append(student_summaries)
 
-                assignments = canvas.get_assignment_submissions_df(the_course)
+                assignments = self.canvas.get_assignment_submissions_df(the_course)
                 if len(assignments):
                     assignments['course_id'] = the_course.id
                     print ('\nAssignment submissions:')

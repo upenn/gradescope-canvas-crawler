@@ -2,7 +2,9 @@ import requests
 from bs4 import BeautifulSoup
 from enum import Enum
 
+from typing import List, Dict, Any
 import logging
+import pandas as pd
 
 try:
     from account import GSAccount
@@ -57,6 +59,7 @@ class GSConnection(CourseApi):
             if login_resp.history[0].status_code == requests.codes.found:
                 self.state = ConnState.LOGGED_IN
                 self.account = GSAccount(email, self.session)
+                self.get_account()
                 return True
         else:
             return False
@@ -75,9 +78,16 @@ class GSConnection(CourseApi):
 
         # Get instructor course data. This is called "Your Courses" if there is only
         # one type of course, or "Instructor Courses" if not
-        instructor_courses = parsed_account_resp.find("h1", class_="pageHeading").next_sibling.next_sibling
+        instructor_courses = parsed_account_resp.find("h1", class_="pageHeading").next_sibling#.next_sibling
+
+        if not instructor_courses.find_all("a", class_="courseBox"):
+            instructor_courses = instructor_courses.next_sibling
+
+        if not instructor_courses or len(instructor_courses) == 0:
+            print ('No instructor courses found')
 
         for course in instructor_courses.find_all("a", class_="courseBox"):
+            print ('Found course box')
             shortname = course.find("h3", class_="courseBox--shortname").text
             name = course.find("div", class_="courseBox--name").text
             cid = course.get("href").split("/")[-1]
@@ -92,7 +102,7 @@ class GSConnection(CourseApi):
                 return False  # Should probably raise an exception.
             self.account.add_class(
                 cid, name, shortname, year, instructor=False
-            )  # no instructor support lmao
+            )
 
         student_courses = parsed_account_resp.find(
             "h1", class_="pageHeading", string="Student Courses"
@@ -120,3 +130,38 @@ class GSConnection(CourseApi):
             self.account.add_class(cid, name, shortname, year)
 
         return True
+
+    def get_course_list(self) -> List[Dict]:
+        icourses = []
+        scourses = []
+        if self.account.instructor_courses and len(self.account.instructor_courses):
+            icourses = list(self.account.instructor_courses.values())
+        if self.account.student_courses and len(self.account.student_courses):
+            scourses = list(self.account.student_courses.values())
+
+        return icourses + scourses
+    
+    def get_course_list_df(self) -> pd.DataFrame:
+        return pd.DataFrame([vars(item) for item in self.get_course_list()]).drop(columns=['session','roster','assignments','state'])
+
+    def get_course(self, cid) -> GSCourse:
+        return self.get_course(cid)
+    
+    def get_assignments(self, course: GSCourse) -> List[Dict]:
+        return course.get_assignments()
+    
+    # def get_assignments_df(self, course: GSCourse) -> pd.DataFrame:
+    #     return super().get_assignments_df(course)
+    
+
+    def get_students(self, course: GSCourse) -> List[Dict]:
+        return list(course.get_roster().values())
+    
+    # def get_students_df(self, course: GSCourse) -> pd.DataFrame:
+    #     return super().get_students_df(course)
+
+    def get_assignment_submissions(self, course: GSCourse) -> List[Dict]:
+        return
+    
+    # def get_assignment_submissions_df(self, course: GSCourse) -> pd.DataFrame:
+    #     return super().get_assignment_submissions_df(course)
