@@ -165,7 +165,7 @@ class GSConnection(CourseApi):
         ret.columns = ['sid', 'name', 'emails']
         return ret
 
-    def get_assignment_submissions(self, course: GSCourse) -> List[Dict]:
+    def get_assignment_submissions_df(self, course: GSCourse) -> pd.DataFrame:
         assignments = []
         for assignment in course.get_assignments():
             scores = self.session.get('https://gradescope.com/courses/' + course.cid + '/assignments/' + assignment['id'] + '/scores.csv').text
@@ -176,5 +176,5 @@ class GSConnection(CourseApi):
             assignments[-1]['course_id'] = course.cid
         return pd.concat(assignments)
     
-    # def get_assignment_submissions_df(self, course: GSCourse) -> pd.DataFrame:
-    #     return super().get_assignment_submissions_df(course)
+    def get_assignment_submissions(self, course: GSCourse) -> List[Dict]:
+         return self.get_assignment_submissions_df.to_list()
