@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
         if do_gs:
             gs = GradescopeStatus(email, pwd, config['gradescope']['semesters'])
-            gs_courses, gs_students, gs_assignments, gs_submissions = gs.get_course_info()
+            gs_courses, gs_students, gs_assignments, gs_submissions, gs_extensions = gs.get_course_info()
             gs_courses.to_csv('gs_courses.csv',index=False)
             if len(gs_students):
                 pd.concat(gs_students).to_csv('gs_students.csv', index=False)
@@ -66,4 +66,6 @@ if __name__ == "__main__":
                 pd.concat(gs_assignments).to_csv('gs_assignments.csv', index=False)
             if len(gs_submissions):
                 pd.concat(gs_submissions).to_csv('gs_submissions.csv', index=False)
+            if len(gs_extensions):
+                pd.concat(gs_extensions).to_csv('gs_extensions.csv', index=False)
 

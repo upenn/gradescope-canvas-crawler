@@ -154,7 +154,13 @@ class GradescopeStatus(CourseWrapper):
                 print(assignments)
                 all_submissions.append(assignments)
 
+            extensions = self.gs.get_extensions_df(the_course)
+            if len(extensions):
+                print(extensions)
+                all_student_summaries.append(extensions)
+
         return ( gs_courses,
                 all_students,
                 all_assignments,
-                all_submissions)
+                all_submissions,
+                all_student_summaries)

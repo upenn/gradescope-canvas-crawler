@@ -36,7 +36,7 @@ After the script runs, there should be a series of files in the current director
 * `gs_courses.csv` / `canvas_courses.csv`: list of courses to which we have access
 * `gs_assignments.csv` / `canvas_assignments.csv`: list of student assignments (quizzes, exams, HWs)
 * `gs_students.csv` / `canvas_students.csv`: list of enrolled students by course_id
-* `canvas_student_summaries.csv`: list of student summary info, including late days etc.
+* `gs_extensions.csv` / `canvas_student_summaries.csv`: list of student info including late days, extensions, etc.
 * `gs_submissions.csv` / `canvas_submissions.csv`: list of homework submissions including timestamps, whether late, etc.
 
 Alternatively, you can use the libraries directly:
@@ -80,7 +80,7 @@ We leverage and adapt the `pyscope` API, which we have updated to 2023 Gradescop
 
 ## Canvas APIs
 
-We leverage the Canvas LTI APIs.
+We leverage the Canvas LTI APIs from the U of Florida library.  Substantial layering over these libraries has been added in the pycanvas package.
 
 ## Flask App
 

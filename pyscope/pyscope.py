@@ -5,6 +5,7 @@ from io import StringIO
 from typing import List, Dict, Any
 import logging
 import pandas as pd
+import lxml
 
 try:
     from account import GSAccount
@@ -178,3 +179,26 @@ class GSConnection(CourseApi):
     
     def get_assignment_submissions(self, course: GSCourse) -> List[Dict]:
          return self.get_assignment_submissions_df.to_list()
+    
+    def get_extensions_df_list(self, course: GSCourse) -> List[pd.DataFrame]:
+        extensions = []
+        for assignment in course.get_assignments():
+            ext_table = self.session.get('https://gradescope.com/courses/' + course.cid + '/assignments/' + assignment['id'] + '/extensions').text
+
+            # print("{}".format(ext_table))
+            try:
+                tab_list = pd.read_html(ext_table)
+
+                print (tab_list)
+
+                extensions.append(tab_list[0])
+                extensions[-1]['course_id'] = course.cid
+            except ValueError:
+                pass
+        return extensions
+    
+    def get_extensions_df(self, course: GSCourse) -> pd.DataFrame:
+        return pd.concat(self.get_extensions_df_list(course))
+    
+    def get_extensions(self, course: GSCourse) -> List[Dict]:
+        return self.get_extensions_df(course).to_list()
