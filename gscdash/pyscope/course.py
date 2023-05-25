@@ -1,17 +1,9 @@
 from enum import Enum
 from bs4 import BeautifulSoup
 from datetime import datetime
-
-try:
-    from person import GSPerson
-    from person import GSRole
-except ModuleNotFoundError:
-    from .person import GSPerson
-    from .person import GSRole
-try:
-    from assignment import GSAssignment
-except ModuleNotFoundError:
-    from .assignment import GSAssignment
+from gscdash.pyscope.person import GSPerson
+from gscdash.pyscope.person import GSRole
+from gscdash.pyscope.assignment import GSAssignment
 
 
 class LoadedCapabilities(Enum):

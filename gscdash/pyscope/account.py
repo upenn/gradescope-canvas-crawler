@@ -1,8 +1,5 @@
 from bs4 import BeautifulSoup
-try:
-   from course import GSCourse
-except ModuleNotFoundError:
-   from .course import GSCourse
+from gscdash.pyscope.course import GSCourse
 
 class GSAccount():
     '''A class designed to track the account details (instructor and student courses)'''

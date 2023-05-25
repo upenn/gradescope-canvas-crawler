@@ -6,18 +6,10 @@ from typing import List, Dict, Any
 import logging
 import pandas as pd
 import lxml
+from gscdash.pyscope.account import GSAccount
+from gscdash.pyscope.course import GSCourse
 
-try:
-    from account import GSAccount
-except ModuleNotFoundError:
-    from .account import GSAccount
-
-try:
-    from course import GSCourse
-except ModuleNotFoundError:
-    from .course import GSCourse
-
-from course_info import CourseApi
+from gscdash.course_info import CourseApi
 
 class ConnState(Enum):
     INIT = 0

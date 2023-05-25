@@ -1,4 +1,4 @@
-from pyscope import pyscope as gs
+from gscdash.pyscope import pyscope as gs
 from ics import Calendar, Event
 import datetime
 import os

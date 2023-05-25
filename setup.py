@@ -5,7 +5,7 @@ with open("README.md", "r", encoding = "utf-8") as fh:
 
 setuptools.setup(
     name = "gscdash",
-    version = "0.0.1",
+    version = "0.0.4",
     author = "Zack Ives",
     author_email = "zives@cis.upenn.edu",
     description = "Gradescope-Canvas Dashboard support",
@@ -14,7 +14,7 @@ setuptools.setup(
     url = "https://github.com/upenn/gradescope-canvas-dashboard",
     classifiers = [
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: Gnu Afero Public License",
+        "License :: OSI Approved :: GNU Affero General Public License v3",
         "Operating System :: OS Independent",
     ],
     install_requires=[
@@ -26,7 +26,6 @@ setuptools.setup(
         "pytz",
         "pyyaml",
     ],
-    package_dir = {"": "gscdash"},
-    packages = setuptools.find_packages(where="gscdash"),
+    packages = ["gscdash", "gscdash.pycanvas", "gscdash.pyscope"],
     python_requires = ">=3.9"
 )

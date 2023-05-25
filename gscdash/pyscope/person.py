@@ -1,5 +1,5 @@
 from enum import Enum
-from course_info import Person
+from gscdash.course_info import Person
 
 class GSRole(Enum):
     STUDENT = 0

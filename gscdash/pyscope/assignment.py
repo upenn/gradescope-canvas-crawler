@@ -1,11 +1,8 @@
-from course_info import Assignment
+from gscdash.course_info import Assignment
 
 import requests
 from bs4 import BeautifulSoup
-try:
-   from question import GSQuestion
-except ModuleNotFoundError:
-   from .question import GSQuestion
+from gscdash.pyscope.question import GSQuestion
 import json
 
 class GSAssignment(Assignment):

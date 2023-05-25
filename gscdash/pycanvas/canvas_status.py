@@ -14,8 +14,8 @@
 ##
 #####################################################################################################################
 
-from pycanvas.pycanvas import CanvasConnection
-from course_info import CourseWrapper
+from gscdash.pycanvas.pycanvas import CanvasConnection
+from gscdash.course_info import CourseWrapper
 import pandas as pd
 from datetime import datetime
 import pytz

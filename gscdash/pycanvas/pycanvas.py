@@ -21,7 +21,7 @@ from canvasapi.assignment import Assignment
 from canvasapi.exceptions import *
 from canvasapi.paginated_list import PaginatedList
 import pandas as pd
-from course_info import CourseApi
+from gscdash.course_info import CourseApi
 import logging
 from typing import List, Dict
 

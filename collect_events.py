@@ -40,7 +40,7 @@ if __name__ == "__main__":
         use_threads = config['gradescope']['use_threads']
 
         do_gs = True
-        do_canvas = False
+        do_canvas = True
 
         if do_canvas:
             canvas = CanvasStatus(canvas_url, canvas_key, config['canvas']['course_ids'])
