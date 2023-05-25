@@ -43,8 +43,8 @@ Alternatively, you can use the libraries directly:
 
 ```
 import pandas as pd
-from pycanvas.pycanvas import CanvasStatus
-from pyscope.pyscope import GradescopeStatus
+from gscdash.pycanvas.pycanvas import CanvasStatus
+from gscdash.pyscope.pyscope import GradescopeStatus
 
 # Restrict to these course IDs
 canvas_course_list = []
