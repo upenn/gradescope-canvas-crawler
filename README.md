@@ -60,25 +60,26 @@ gs_courses, gs_students, gs_assignments, gs_submissions, gs_extensions = gs.get_
 
 ```
 
-## To-Dos:
-* Add download from Review Similarity for each assignment?
-* Download Extensions?
-* Generate ics for all items this semester?
+## Potential To-Dos:
+* Add download from Gradescope Review Similarity for each assignment?
+* Generate ics for all deadlines?
 
 ## Gradescope APIs
 
 We leverage and adapt the `pyscope` API, which we have updated to 2023 Gradescope with extensions.  Gradescope does not really have an external API, but through some clever work by prior authors, HTML crawling is used to pull the important data and wrap it in objects.
 
-**Credit**: The Pyscope codebase is derived from Sagar Reddy Patil's Gradescope iCalendar Converter, [sagarredypatil/gradescope-ics](https://github.com/sagarredypatil/gradescope-ics), which also leverages the original Gradescope codebase from Anton Pozharski, [apozharski/gradescope-api](https://github.com/apozharski/gradescope-api).
+**Credit**: The `pyscope` codebase is derived from Sagar Reddy Patil's Gradescope iCalendar Converter, [sagarredypatil/gradescope-ics](https://github.com/sagarredypatil/gradescope-ics), which also leverages the original Gradescope codebase from Anton Pozharski, [apozharski/gradescope-api](https://github.com/apozharski/gradescope-api).  This overall package inherits the AGPL license as a result of this.  However, new subsystems use the standard Apache 2 license.
 
 **Major changes**:
 * Support for extracting courses for which we have either *instructor* or *student* access.  Instructor access has more comprehensive support, e.g., of downloading rosters.
 * Instructor access uses the full **assignments** page rather than the main dashboard, for comprehensiveness.  This requires changes to parsing.
 * New `course.get_roster()` API call.
-* Roster extraction required updates to match the 2023 HTML formatting.
-* Standardized API with Canvas modules.
+* Roster extraction update to match the 2023 HTML formatting of Gradescope.
+* Homework assignment extraction now pulls the assignment ID.
+* Extraction of homework submissions.
+* Extraction of homework extensions.
 
 ## Canvas APIs
 
-We leverage the Canvas LTI APIs from the U of Florida library.  Substantial layering over these libraries has been added in the pycanvas package.
+We leverage the Canvas LTI APIs from the U of Florida library.  Substantial layering over these libraries has been added in the `pycanvas` package, and a common API between the Canvas and Gradescope modules has been implemented as `CourseApi`.
 
