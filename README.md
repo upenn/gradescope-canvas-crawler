@@ -56,7 +56,7 @@ canvas = CanvasStatus(canvas_url, canvas_api_key, canvas_course_list)
 canvas_courses, all_students, all_assignments, all_submissions, all_student_summaries = canvas.get_course_info()
 
 gs = GradescopeStatus(email, pwd, gradescope_sem_list)
-gs_courses, gs_students, gs_assignments, gs_submissions = gs.get_course_info()
+gs_courses, gs_students, gs_assignments, gs_submissions, gs_extensions = gs.get_course_info()
 
 ```
 
