@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gscdash"
+version = "0.0.1"
+dependencies = [
+    "requests",
+    "html5lib",
+    "beautifulsoup4",
+    "canvasapi",
+    "pandas",
+    "pytz",
+    "pyyaml"
+]

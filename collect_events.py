@@ -20,9 +20,9 @@
 
 
 from threading import Thread
-from pycanvas.pycanvas import CanvasConnection
-from pycanvas.canvas_status import CanvasStatus
-from pyscope.gs_status import GradescopeStatus
+from gscdash.pycanvas.pycanvas import CanvasConnection
+from gscdash.pycanvas.canvas_status import CanvasStatus
+from gscdash.pyscope.gs_status import GradescopeStatus
 import yaml
 import logging
 import pandas as pd
