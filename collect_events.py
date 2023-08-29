@@ -41,9 +41,6 @@ if __name__ == "__main__":
 
         print ('*** Reading details from config.yaml ***')
 
-        do_gs = False#True
-        do_canvas = True
-
         if config['canvas']['enabled']:
             print ('Canvas courses:')
             for item in config['canvas']['course_ids']:
@@ -62,7 +59,7 @@ if __name__ == "__main__":
             if len(all_submissions):
                 pd.concat(all_submissions).to_csv('canvas_submissions.csv', index=False)
 
-        if do_gs:
+        if config['gradescope']['enabled']:
             print ('Gradescope semesters')
             if 'semesters' in config['gradescope']:
                 for sem in config['gradescope']['semesters']:

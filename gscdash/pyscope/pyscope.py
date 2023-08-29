@@ -138,7 +138,12 @@ class GSConnection(CourseApi):
         return icourses + scourses
     
     def get_course_list_df(self) -> pd.DataFrame:
-        return pd.DataFrame([vars(item) for item in self.get_course_list()]).drop(columns=['session','roster','assignments','state'])
+        ret = pd.DataFrame([vars(item) for item in self.get_course_list()])
+        
+        if len(ret):
+            return ret.drop(columns=['session','roster','assignments','state'])
+        else:
+            return ret
 
     def get_course(self, cid) -> GSCourse:
         return self.get_course(cid)
