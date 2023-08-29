@@ -2,6 +2,8 @@ gradescope:
   gs_login: 'a@b.com'
   gs_pwd: 'letmein123!'
   use_threads: false
+  semesters:
+  - Fall 2023
 
 canvas:
   api_key: 123456
@@ -9,4 +11,10 @@ canvas:
   course_ids:
   - 123
   - 456
-  
+  enabled: true
+  active_only: false
+  include:
+  - students
+  - assignments
+  - summaries
+  - submissions

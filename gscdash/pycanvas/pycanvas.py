@@ -33,9 +33,10 @@ class CanvasConnection(CourseApi):
         return
     
     def _get_paginated(the_list, paginated: PaginatedList):
-        for item in paginated:
-            the_list.append(item)
+        #for item in paginated:
+        #    the_list.append(item)
 
+        the_list.extend([item for item in paginated])
         return the_list
     
     def get_course_list(self) -> List[Dict]:
@@ -180,13 +181,27 @@ class CanvasConnection(CourseApi):
         Returns a list of dictionaries containing the assignments for a course.
         """
         assignments = []
-        ret = []
+        # ret = []
         CanvasConnection._get_paginated(assignments, course.get_assignments(per_page=100))
-        for assignment in assignments:
-            ret.append(vars(assignment))
-            del(ret[-1]['_requester'])
-            del(ret[-1]['description'])
-            del(ret[-1]['secure_params'])
+        # for assignment in assignments:
+        #     print (vars(assignment).keys())
+        #     ret.append(vars(assignment))
+        #     del(ret[-1]['_requester'])
+        #     del(ret[-1]['description'])
+        #     del(ret[-1]['secure_params'])
+        ret = [{'id': assignment.id,
+                'name': assignment.name,
+                #'description': assignment.description,
+                'due_at': assignment.due_at,
+                'unlock_at': assignment.unlock_at,
+                'lock_at': assignment.lock_at,
+                'points_possible': assignment.points_possible,
+                # 'grading_type': assignment.grading_type,
+                # 'graded': assignment.graded,
+                'allowed_attempts': assignment.allowed_attempts,
+                'muted': assignment.muted,
+                #'quiz_id': assignment.quiz_id,
+            } for assignment in assignments]
         return ret
             
     def get_student_summaries_df(self, course: Course) -> pd.DataFrame:
@@ -195,16 +210,25 @@ class CanvasConnection(CourseApi):
         """
         try:
             the_list = []
-            summaries = []
+#            summaries = []
             CanvasConnection._get_paginated(the_list, course.get_course_level_student_summary_data(per_page=100))
-            for item in the_list:
-                summaries.append(vars(item))
-                del(summaries[-1]['_requester'])
+            summaries = [{'id': item.id,
+                    'page_views': item.page_views,
+                    'max_page_views': item.max_page_views,
+                    'participations': item.participations,
+                    'max_participations': item.max_participations,
+                    # 'tardiness_breakdown': item.tardiness_breakdown,
+                    'course_id': item.course_id,
+                } for item in the_list]
+            # for item in the_list:
+            #     print(vars(item).keys())
+            #     summaries.append(vars(item))
+            #     del(summaries[-1]['_requester'])
             ret = pd.DataFrame(summaries)
-            if 'tardiness_breakdown' in ret.columns:
-                return ret.join(pd.json_normalize(ret['tardiness_breakdown'])).drop(['tardiness_breakdown'], axis=1)
-            else:
-                return ret
+            # if 'tardiness_breakdown' in ret.columns:
+            #     return ret.join(pd.json_normalize(ret['tardiness_breakdown'])).drop(['tardiness_breakdown'], axis=1)
+            # else:
+            return ret
         except Forbidden:
             return pd.DataFrame()
         except ResourceDoesNotExist:
@@ -217,9 +241,16 @@ class CanvasConnection(CourseApi):
         ret= []
         try:
             CanvasConnection._get_paginated(students, course.get_users(enrollment_type=['student'], per_page=100))
-            for student in students:
-                ret.append(vars(student))
-                del(ret[-1]['_requester'])
+            ret = [{'id': student.id,
+                    'name': student.name,
+                    'sortable_name': student.sortable_name,
+                    'login_id': student.login_id,
+                    'email': student.email,
+                    'sis_user_id': student.sis_user_id,
+                    'created_at': student.created_at,
+#                    'pronouns': student.pronouns,
+                    } for student in students]
+            return ret
         except ResourceDoesNotExist:
             logging.warning('No students found for course %s', course)
             pass
@@ -234,16 +265,36 @@ class CanvasConnection(CourseApi):
         Returns a list of dictionaries containing the assignment submissions for a course.
         """
         ret = []
-        assignments = []
+        assignments=[]
         CanvasConnection._get_paginated(assignments, course.get_assignments(per_page=100))
         try:
+            print('%d assignments'%len(assignments))
             for assignment in assignments:
                 submissions = []
                 CanvasConnection._get_paginated(submissions, assignment.get_submissions(per_page=100))
-                for submission in submissions:
-                    ret.append(vars(submission))
-                    ret[-1]['assignment_id'] = assignment.id
-                    del(ret[-1]['_requester'])
+            #     for submission in submissions:
+            #         ret.append(vars(submission))
+            #         print(vars(submission).keys())
+            #         ret[-1]['assignment_id'] = assignment.id
+            #         del(ret[-1]['_requester'])
+                ret.extend([{'id': sub.id,
+                        'assignment_id': sub.assignment_id,
+                        'user_id': sub.user_id,
+                        'grade': sub.grade,
+                        'submitted_at': sub.submitted_at,
+                        'graded_at': sub.graded_at,
+                        'grader_id': sub.grader_id,
+                        'score': sub.score,
+                        'excused': sub.excused,
+                        'late_policy_status': sub.late_policy_status,
+                        'points_deducted': sub.points_deducted,
+                        'late': sub.late,
+                        'missing': sub.missing,
+                        'entered_grade': sub.entered_grade,
+                        'entered_score': sub.entered_score,
+                        'course_id': sub.course_id,
+                        } for sub in submissions])
+                print('%d submissions for assignment %d'%(len(submissions),assignment.id))
         except ResourceDoesNotExist:
             pass
         except Forbidden:

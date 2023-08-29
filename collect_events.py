@@ -39,11 +39,17 @@ if __name__ == "__main__":
         pwd = config['gradescope']['gs_pwd']
         use_threads = config['gradescope']['use_threads']
 
-        do_gs = True
+        print ('*** Reading details from config.yaml ***')
+
+        do_gs = False#True
         do_canvas = True
 
-        if do_canvas:
-            canvas = CanvasStatus(canvas_url, canvas_key, config['canvas']['course_ids'])
+        if config['canvas']['enabled']:
+            print ('Canvas courses:')
+            for item in config['canvas']['course_ids']:
+                print(item)
+
+            canvas = CanvasStatus(canvas_url, canvas_key, config['canvas']['course_ids'], config['canvas']['include'], config['canvas']['active_only'])
 
             canvas_courses, all_students, all_assignments, all_submissions, all_student_summaries = canvas.get_course_info()
             canvas_courses.to_csv('canvas_courses.csv',index=False)
@@ -57,6 +63,13 @@ if __name__ == "__main__":
                 pd.concat(all_submissions).to_csv('canvas_submissions.csv', index=False)
 
         if do_gs:
+            print ('Gradescope semesters')
+            if 'semesters' in config['gradescope']:
+                for sem in config['gradescope']['semesters']:
+                    print(sem)
+            else:
+                print ("all")
+
             gs = GradescopeStatus(email, pwd, config['gradescope']['semesters'])
             gs_courses, gs_students, gs_assignments, gs_submissions, gs_extensions = gs.get_course_info()
             gs_courses.to_csv('gs_courses.csv',index=False)
