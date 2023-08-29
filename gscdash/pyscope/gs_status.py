@@ -134,29 +134,29 @@ class GradescopeStatus(CourseWrapper):
             print (the_course.name)
 
             students = self.gs.get_students_df(the_course)
+            print ('\nStudents')
             if len(students):
                 students['course_id'] = the_course.cid
-                print ('\nStudents:')
-                print (students)
+                # print (students)
                 all_students.append(students)
 
+            print ('\nAssignments')
             assignments = self.gs.get_assignments_df(the_course)
             if len(assignments):
                 assignments['course_id'] = the_course.cid
-                print ('\nAssignments:')
-                print(assignments)
+                # print(assignments)
                 all_assignments.append(assignments)
 
+            print ('\nAssignment submissions')
             assignments = self.gs.get_assignment_submissions_df(the_course)
             if len(assignments):
                 assignments['course_id'] = the_course.cid
-                print ('\nAssignment submissions:')
-                print(assignments)
+                # print(assignments)
                 all_submissions.append(assignments)
 
             extensions = self.gs.get_extensions_df(the_course)
             if len(extensions):
-                print(extensions)
+                # print(extensions)
                 all_student_summaries.append(extensions)
 
         return ( gs_courses,

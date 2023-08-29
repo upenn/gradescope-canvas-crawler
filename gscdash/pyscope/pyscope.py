@@ -80,12 +80,12 @@ class GSConnection(CourseApi):
             print ('No instructor courses found')
 
         for course in instructor_courses.find_all("a", class_="courseBox"):
-            print ('Found course box')
+            logging.debug ('Found course box')
             shortname = course.find("h3", class_="courseBox--shortname").text
             name = course.find("div", class_="courseBox--name").text
             cid = course.get("href").split("/")[-1]
             year = None
-            print('Instructor in: ', cid, name, shortname)
+            print ('Instructor role in: ', cid, name, shortname)
             for tag in course.parent.previous_siblings:
                 if "courseList--term" in tag.get("class"):
                     year = tag.string
@@ -160,7 +160,8 @@ class GSConnection(CourseApi):
     
     def get_students_df(self, course: GSCourse) -> pd.DataFrame:
         ret = pd.DataFrame(self.get_students(course))
-        ret.columns = ['sid', 'name', 'emails']
+        if len(ret):
+            ret.columns = ['sid', 'name', 'emails']
         return ret
 
     def get_assignment_submissions_df(self, course: GSCourse) -> pd.DataFrame:
@@ -168,7 +169,7 @@ class GSConnection(CourseApi):
         for assignment in course.get_assignments():
             scores = self.session.get('https://gradescope.com/courses/' + course.cid + '/assignments/' + assignment['id'] + '/scores.csv').text
 
-            print(scores)
+            # print(scores)
 
             assignments.append(pd.read_csv(StringIO(scores)))
             assignments[-1]['course_id'] = course.cid
@@ -186,7 +187,7 @@ class GSConnection(CourseApi):
             try:
                 tab_list = pd.read_html(ext_table)
 
-                print (tab_list)
+                # print (tab_list)
 
                 extensions.append(tab_list[0])
                 extensions[-1]['course_id'] = course.cid
