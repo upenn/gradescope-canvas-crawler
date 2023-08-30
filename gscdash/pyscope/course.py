@@ -93,15 +93,18 @@ class GSCourse:
         self._lazy_load_roster()
 
     def get_assignments(self):
+        # Only instructor has access to this version
         assignments_resp = self.session.get("https://www.gradescope.com/courses/" + self.cid + '/assignments')
         parsed = BeautifulSoup(assignments_resp.text, "html.parser")
+        is_instructor = False
 
+        # If it's a student, they only have the Dashboard list
         if 'You are not authorized to access this page.' in parsed.text:
             assignments_resp = self.session.get("https://www.gradescope.com/courses/" + self.cid)
             parsed = BeautifulSoup(assignments_resp.text, "html.parser")
-
-        assignments_table = parsed.find("table", id="assignments-student-table")
-        if not assignments_table:
+            assignments_table = parsed.find("table", id="assignments-student-table")
+            is_instructor = True
+        else:
             assignments_table = parsed.find("table", id="assignments-instructor-table")
 
         assignments_table_body = assignments_table.find("tbody")
@@ -115,9 +118,12 @@ class GSCourse:
 
             if not name:
                 name = row.find("div", class_="assignments--rowTitle")
+
+            if name.find('a') and name.find('a').get('href'):
                 assign_id = name.find('a').get('href').split('/')[-1]
             else:
-                assign_id = name.find('a').get('href').split('/')[-1]
+                assign_id = None
+                # assign_id = name.find('a').get('href').split('/')[-1]
             name = name.text
 
             timeline_cols = row.find_all("td", {"class": "table--hiddenColumn"})
@@ -138,12 +144,19 @@ class GSCourse:
             else:
                 due = datetime.strptime(due, datefmt)
 
-            assignments.append( {
-                    "id": assign_id,
-                    "name": name,
-                    "assigned": assigned,
-                    "due": due,
-                })
+            if assign_id:
+                assignments.append( {
+                        "id": assign_id,
+                        "name": name,
+                        "assigned": assigned,
+                        "due": due,
+                    })
+            else:
+                assignments.append( {
+                        "name": name,
+                        "assigned": assigned,
+                        "due": due,
+                    })
 
         return assignments
 
