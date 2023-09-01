@@ -70,7 +70,7 @@ def is_overdue(x, due):
     return is_unsubmitted(x) and due < now
 
 def is_near_due(x, due):
-    return is_unsubmitted(x) and (due - now) < timedelta(days = 7)
+    return is_unsubmitted(x) and (due - now) < timedelta(days = 2)
 
 def is_submitted(x):
     return x['Status'] != 'Missing'
@@ -111,7 +111,7 @@ def display_course(course_filter: pd.DataFrame):
             # st.write('released on %s and due on %s'%(assigned,due))
             st.write('Due on %s'%(due_date.strftime('%A, %B %d, %Y')))
 
-            col1, col2 = st.columns(2)
+            col1, col2 = st.tabs(['Students','Submissions by time'])#columns(2)
 
             by_time = df.copy()
             by_time['Submission Time'] = by_time['Submission Time'].apply(lambda x:pd.to_datetime(x) if x else None)
@@ -123,11 +123,11 @@ def display_course(course_filter: pd.DataFrame):
             by_time = df.groupby('Submission Time').count().reset_index()
             by_time = by_time[['Submission Time','Total Score']].rename(columns={'Total Score':'Count'})
             with col2:
-                st.write("Submissions over time:")
+                # st.write("Submissions over time:")
                 st.line_chart(data=by_time,x='Submission Time',y='Count')
 
             with col1:
-                st.write("Students and submissions:")
+                # st.write("Students and submissions:")
                 st.dataframe(df.style.format(precision=0).apply(
                     lambda x: [f"background-color:pink" 
                                 if is_overdue(x, due_date) 
@@ -149,20 +149,33 @@ def display_course(course_filter: pd.DataFrame):
 enrollments = enrollments.sort_values(['due','assignment','Status','Total Score','Last Name','First Name'],
                                       ascending=[True,True,True,False,True,True])
 
+st.markdown("# Penn CIS Gradescope-Canvas Dashboard")
+
 num_panels = len(courses_df)
 
-with st.container():
-    cols = st.columns(num_panels)
+with st.sidebar:
+    #cols = st.columns(num_panels)
     for i, course in courses_df.iterrows():
-        with cols[i]:
-            st.write(course['shortname'])
+     #   with cols[i]:
+        st.write(course['shortname'])
 
-            course_info = enrollments[enrollments['name']==course['name']]
+        course_info = enrollments[enrollments['name']==course['name']]
 
-            overdue = course_info[course_info.apply(lambda x: is_overdue(x, datetime.datetime.strptime(x['due'], date_format)), axis=1)].count()['sid']
-            pending = course_info[course_info.apply(lambda x: is_near_due(x, datetime.datetime.strptime(x['due'], date_format)), axis=1)].count()['sid']
-            submitted = course_info[course_info.apply(lambda x: is_submitted(x), axis=1)].count()['sid']
-            st.dataframe(data=[{"✓":submitted,"😅":pending,"😰":overdue}], hide_index=True)
+        overdue = course_info[course_info.apply(lambda x: is_overdue(x, datetime.datetime.strptime(x['due'], date_format)), axis=1)].count()['sid']
+        pending = course_info[course_info.apply(lambda x: is_near_due(x, datetime.datetime.strptime(x['due'], date_format)), axis=1)].count()['sid']
+        submitted = course_info[course_info.apply(lambda x: is_submitted(x), axis=1)].count()['sid']
+
+        overall_df = pd.DataFrame([{"✓":submitted,"😅":pending,"😰":overdue}])
+
+        overall_df.style.apply(
+                    lambda x: [f"background-color:pink" 
+                                if overdue >0
+                                else f'background-color:mistyrose' 
+                                    if pending >0
+                                    else 'background-color:lightgreen' for i in x],
+                    axis=1)
+
+        st.dataframe(data=overall_df, hide_index=True)
 
 
 ## TODO: dashboard widgets showing number of overdue, near due, done
