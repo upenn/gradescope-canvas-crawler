@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit import column_config
 
 import datetime
 import pandas as pd
@@ -71,14 +72,24 @@ def is_overdue(x, due):
 def is_near_due(x, due):
     return is_unsubmitted(x) and (due - now) < timedelta(days = 7)
 
-enrollments = enrollments.sort_values(['due','assignment','Status','Total Score','Last Name','First Name'])
+def is_submitted(x):
+    return x['Status'] != 'Missing'
 
-for c,course in courses_df.iterrows():
+def display_course(course_filter: pd.DataFrame):
+    """
+    Given a course datframe (with a singleton row), displays for each assignment (in ascending order of deadline):
+    - a line chart of submissions over time
+    - a table of students, with color coding for overdue, near due, and submitted
+    """
+    course = courses_df[courses_df['name']==course_filter].iloc[0]
     course_info = enrollments[enrollments['name']==course['name']]
     #assigns = course_info['assignment'].drop_duplicates()
-    assigns = assignments_df[assignments_df['course_id']==course['cid']]
+    assigns = assignments_df[assignments_df['course_id']==course['cid']].copy()
     st.subheader("Status of %s:"%course['name'])
-    
+
+    assigns['due'] = assigns['due'].apply(lambda x:pd.to_datetime(x) if x else None)
+    assigns = assigns.sort_values('due',ascending=True)
+
     for a,assign in assigns.iterrows():
         df = course_info[course_info['assignment_id']==assign['assignment_id']].\
             drop(columns=['sid','cid','assignment_id','assignment','Last Name','First Name'])
@@ -88,17 +99,79 @@ for c,course in courses_df.iterrows():
         assigned_date = datetime.datetime.strptime(assigned, date_format)
         due_date = datetime.datetime.strptime(due, date_format)
 
-        # Skip if it's not yet assigned!
-        if now < assigned_date:
-            continue
+        with st.container():
+            ## TODO:
+            ## Can we do x of Y in a column, and make this smaller?
 
-        st.markdown('### %s'%assign['name'])
-        st.write('released on %s and due on %s'%(assigned,due))
+            # Skip if it's not yet assigned!
+            if now < assigned_date:
+                continue
 
-        #,'assigned','due'
+            st.markdown('### %s'%assign['name'])
+            # st.write('released on %s and due on %s'%(assigned,due))
+            st.write('Due on %s'%(due_date.strftime('%A, %B %d, %Y')))
 
-        st.dataframe(df.style.apply(
-            lambda x: [f"background-color:pink" if is_overdue(x, due_date) else f'background-color:mistyrose' if is_near_due(x, due_date) else '' for i in x],
-            axis=1), use_container_width=True,hide_index=True,
-                    column_config={'name':None,'sid':None,'cid':None,'assign_id':None,'Last Name':None,'First Name':None, 'assigned':None,'due': None})
+            col1, col2 = st.columns(2)
+
+            by_time = df.copy()
+            by_time['Submission Time'] = by_time['Submission Time'].apply(lambda x:pd.to_datetime(x) if x else None)
+            # by_time['Submission Time'] = by_time['Submission Time'].apply(lambda x: 
+            #                                                                 datetime.datetime(x.year,x.month,x.day,0,0,0,0,tzinfo=timezone(offset=timedelta())) 
+            #                                                                 if x.year > 0 else None)
+            by_time = by_time.set_index('Submission Time')
+
+            by_time = df.groupby('Submission Time').count().reset_index()
+            by_time = by_time[['Submission Time','Total Score']].rename(columns={'Total Score':'Count'})
+            with col2:
+                st.write("Submissions over time:")
+                st.line_chart(data=by_time,x='Submission Time',y='Count')
+
+            with col1:
+                st.write("Students and submissions:")
+                st.dataframe(df.style.format(precision=0).apply(
+                    lambda x: [f"background-color:pink" 
+                                if is_overdue(x, due_date) 
+                                else f'background-color:mistyrose' 
+                                    if is_near_due(x, due_date) 
+                                    else 'background-color:lightgreen' if is_submitted(x) else '' for i in x],
+                    axis=1), use_container_width=True,hide_index=True,
+                            column_config={
+                                'name':None,'Email':None,'sid':None,'cid':None,
+                                'assign_id':None,'Last Name':None,'First Name':None, 
+                                'assigned':None,'due': None,
+                                'Total Score':st.column_config.NumberColumn(step=1,format="$%d"),
+                                'Max Points':st.column_config.NumberColumn(step=1,format="$%d"),
+                                # 'Submission Time':st.column_config.DatetimeColumn(format="D MM YY, h:mm a")
+                                })
     st.divider()
+
+
+enrollments = enrollments.sort_values(['due','assignment','Status','Total Score','Last Name','First Name'],
+                                      ascending=[True,True,True,False,True,True])
+
+num_panels = len(courses_df)
+
+with st.container():
+    cols = st.columns(num_panels)
+    for i, course in courses_df.iterrows():
+        with cols[i]:
+            st.write(course['shortname'])
+
+            course_info = enrollments[enrollments['name']==course['name']]
+
+            overdue = course_info[course_info.apply(lambda x: is_overdue(x, datetime.datetime.strptime(x['due'], date_format)), axis=1)].count()['sid']
+            pending = course_info[course_info.apply(lambda x: is_near_due(x, datetime.datetime.strptime(x['due'], date_format)), axis=1)].count()['sid']
+            submitted = course_info[course_info.apply(lambda x: is_submitted(x), axis=1)].count()['sid']
+            st.dataframe(data=[{"✓":submitted,"😅":pending,"😰":overdue}], hide_index=True)
+
+
+## TODO: dashboard widgets showing number of overdue, near due, done
+##       overall and by course
+
+## TODO: summary list of heavily overdue with mailto links?
+
+course_filter = st.selectbox("Select course", pd.unique(courses_df["name"]))
+
+# for c,course in courses_df.iterrows():
+
+display_course(course_filter=course_filter)
