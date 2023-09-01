@@ -18,13 +18,22 @@
 ##
 #####################################################################################################################
 
+import threading
 
-from threading import Thread
-from gscdash.pycanvas.pycanvas import CanvasConnection
+def process_canvas_course(canvas_url, canvas_key, canvas_course_id):
+    canvas = CanvasStatus(canvas_url, canvas_key, [canvas_course_id], config['canvas']['include'], config['canvas']['active_only'])
+
+    canvas_courses, all_students, all_assignments, all_submissions, all_student_summaries = canvas.get_course_info()
+    return (canvas_courses, all_students, all_assignments, all_submissions, all_student_summaries)
+
+def process_gs_course(email, pwd, course):
+    gs_students, gs_assignments, gs_submissions, gs_extensions = gs.get_course_info([course])
+    return (gs_students, gs_assignments, gs_submissions, gs_extensions)
+
+
 from gscdash.pycanvas.canvas_status import CanvasStatus
 from gscdash.pyscope.gs_status import GradescopeStatus
 import yaml
-import logging
 import pandas as pd
 
 
@@ -43,12 +52,20 @@ if __name__ == "__main__":
 
         if config['canvas']['enabled']:
             print ('Canvas courses:')
-            for item in config['canvas']['course_ids']:
-                print(item)
+            all_students = []
+            all_assignments = []
+            all_submissions = []
+            all_student_summaries = []
+            for course_id in config['canvas']['course_ids']:
+                print(course_id)
 
-            canvas = CanvasStatus(canvas_url, canvas_key, config['canvas']['course_ids'], config['canvas']['include'], config['canvas']['active_only'])
+                canvas_courses, students, assignments, submissions, student_summaries = \
+                    process_canvas_course(canvas_url, canvas_key, course_id)
+                all_students.extend(students)
+                all_assignments.extend(assignments)
+                all_submissions.extend(submissions)
+                all_student_summaries.extend(student_summaries)
 
-            canvas_courses, all_students, all_assignments, all_submissions, all_student_summaries = canvas.get_course_info()
             canvas_courses.to_csv('canvas_courses.csv',index=False)
             if len(all_student_summaries):
                 pd.concat(all_student_summaries).to_csv('canvas_student_summaries.csv', index=False)
@@ -68,8 +85,22 @@ if __name__ == "__main__":
                 print ("all")
 
             gs = GradescopeStatus(email, pwd, config['gradescope']['semesters'])
-            gs_courses, gs_students, gs_assignments, gs_submissions, gs_extensions = gs.get_course_info()
-            gs_courses.to_csv('gs_courses.csv',index=False)
+            courses = gs.gs.get_course_list()
+
+            gs_courses = gs.gs.get_course_list_df()
+            gs_students = []
+            gs_assignments = []
+            gs_submissions = []
+            gs_extensions = []
+            for course in courses:
+                print(course.name)
+                students, assignments, submissions, extensions = process_gs_course(email, pwd, course)
+                gs_students.extend(students)
+                gs_assignments.extend(assignments)
+                gs_submissions.extend(submissions)
+                gs_extensions.extend(extensions)
+
+            pd.DataFrame(gs_courses).to_csv('gs_courses.csv',index=False)
             if len(gs_students):
                 pd.concat(gs_students).to_csv('gs_students.csv', index=False)
             if len(gs_assignments):

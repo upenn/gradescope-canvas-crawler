@@ -24,6 +24,7 @@ class GSConnection(CourseApi):
         self.session = requests.Session()
         self.state = ConnState.INIT
         self.account = None
+        self.crawl_student = None
 
     def login(self, email, pswd, semesters):
         """
@@ -85,7 +86,7 @@ class GSConnection(CourseApi):
             name = course.find("div", class_="courseBox--name").text
             cid = course.get("href").split("/")[-1]
             year = None
-            print ('Instructor role in: ', cid, name, shortname)
+            # print ('Instructor role in: ', cid, name, shortname)
             for tag in course.parent.previous_siblings:
                 if "courseList--term" in tag.get("class"):
                     year = tag.string
@@ -95,35 +96,39 @@ class GSConnection(CourseApi):
                 return False  # Should probably raise an exception.
             
             if semesters is None or year in semesters:
+                # print(year)
                 self.account.add_class(
                     cid, name, shortname, year, instructor=False
                 )
 
-        student_courses = parsed_account_resp.find(
-            "h1", class_="pageHeading", string="Student Courses"
-        )
+        if self.crawl_student:
+            student_courses = parsed_account_resp.find(
+                "h1", class_="pageHeading", string="Student Courses"
+            )
 
-        if student_courses is None:
-            print('No student courses found')
-            return True
+            if student_courses is None:
+                print('No student courses found')
+                return True
 
-        student_courses = student_courses.next_sibling
+            student_courses = student_courses.next_sibling
 
-        for course in student_courses.find_all("a", class_="courseBox"):
-            shortname = course.find("h3", class_="courseBox--shortname").text
-            name = course.find("div", class_="courseBox--name").text
-            cid = course.get("href").split("/")[-1]
-            print('Student in: ', cid, name, shortname)
+            year = None
+            for course in student_courses.find_all("a", class_="courseBox"):
+                shortname = course.find("h3", class_="courseBox--shortname").text
+                name = course.find("div", class_="courseBox--name").text
+                cid = course.get("href").split("/")[-1]
+                # print('Student in: ', cid, name, shortname)
 
-            for tag in course.parent.previous_siblings:
-                if tag.get("class") == "courseList--term pageSubheading":
-                    year = tag.body
-                    break
-            if year is None:
-                raise "No year"
-                return False  # Should probably raise an exception.
-            if semesters is None or year in semesters:
-                self.account.add_class(cid, name, shortname, year)
+                for tag in course.parent.previous_siblings:
+                    if tag.get("class") == "courseList--term pageSubheading":
+                        year = tag.body
+                        break
+                if year is None:
+                    raise "No year"
+                    return False  # Should probably raise an exception.
+                if semesters is None or year in semesters:
+                    # print(year)
+                    self.account.add_class(cid, name, shortname, year)
 
         return True
 
@@ -174,6 +179,7 @@ class GSConnection(CourseApi):
 
                 assignments.append(pd.read_csv(StringIO(scores)))
                 assignments[-1]['course_id'] = course.cid
+                assignments[-1]['assign_id'] = assignment['id']
 
         if len(assignments):
             return pd.concat(assignments)
@@ -197,6 +203,7 @@ class GSConnection(CourseApi):
 
                     extensions.append(tab_list[0])
                     extensions[-1]['course_id'] = course.cid
+                    extensions[-1]['assign_id'] = assignment['id']
                 except ValueError:
                     pass
         return extensions

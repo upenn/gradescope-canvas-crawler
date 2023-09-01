@@ -7,7 +7,7 @@ import json
 
 class GSAssignment(Assignment):
 
-    def __init__(self, name, aid, points, percent_graded, complete, regrades_on, course):
+    def __init__(self, name, aid, points, percent_graded, complete, regrades_on, released, due, course):
         '''Create a assignment object'''
         self.name = name
         self.aid = aid
@@ -18,6 +18,8 @@ class GSAssignment(Assignment):
         self.regrades_on = regrades_on
         self.course = course
         self.questions = []
+        self.released = released
+        self.due = due
 
     def add_question(self, title, weight, crop = None, content = [], parent_id = None):
         new_q_data = [q.to_patch() for q in self.questions]

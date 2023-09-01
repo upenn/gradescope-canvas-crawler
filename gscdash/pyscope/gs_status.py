@@ -120,8 +120,9 @@ class GradescopeStatus(CourseWrapper):
 
 
         
-    def get_course_info(self) -> Tuple[Any]:
-        gs_courses = self.gs.get_course_list_df()
+    def get_course_info(self, gs_courses: list) -> Tuple[Any]:
+        if not gs_courses:
+            gs_courses = self.gs.get_course_list()#_df()
         all_assignments = []
         all_students = []
         all_submissions = []
@@ -130,7 +131,7 @@ class GradescopeStatus(CourseWrapper):
         logging.debug('Getting course info from Gradescope for {}'.format(self.sem))
 
         rightnow = datetime.utcnow().replace(tzinfo=pytz.utc)
-        for the_course in self.gs.get_course_list():
+        for the_course in gs_courses:#self.gs.get_course_list():
             print (the_course.name)
 
             students = self.gs.get_students_df(the_course)
@@ -159,8 +160,8 @@ class GradescopeStatus(CourseWrapper):
                 # print(extensions)
                 all_student_summaries.append(extensions)
 
-        return ( gs_courses,
-                all_students,
-                all_assignments,
-                all_submissions,
+        return ( #pd.concat([pd.DataFrame(g) for g in gs_courses]), \
+                all_students, \
+                all_assignments, \
+                all_submissions, \
                 all_student_summaries)

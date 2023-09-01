@@ -287,13 +287,15 @@ class GSCourse:
             aid = row[0].find("a").get("href").rsplit("/", 1)[1]
             points = row[1].text
             # TODO: (released,due) = parse(row[2])
+            released = row[2].find("span", {'class': 'submissionTimeChart--releaseDate'}).text
+            due = row[2].find("span", {'class': 'submissionTimeChart--dueDate'}).text
             submissions = row[3].text
             percent_graded = row[4].text
             complete = True if "workflowCheck-complete" in row[5].get("class") else False
             regrades_on = False if row[6].text == "OFF" else True
             # TODO make these types reasonable
             self.assignments[name] = GSAssignment(
-                name, aid, points, percent_graded, complete, regrades_on, self
+                name, aid, points, percent_graded, complete, regrades_on, released, due, self
             )
         self.state.add(LoadedCapabilities.ASSIGNMENTS)
         pass
@@ -323,7 +325,9 @@ class GSCourse:
 
         for row in roster_table:
             name = row[0].text.rsplit(" ", 1)[0]
+            print (row[0])
             data_id = row[0].find("button", class_="rosterCell--editIcon").get("data-id")
+
             if len(row) >= 4 and row[2].find("option", selected="selected"):
                 email = row[1].text
                 role = row[2].find("option", selected="selected").text
