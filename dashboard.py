@@ -1,5 +1,9 @@
 import streamlit as st
 from streamlit import column_config
+from st_aggrid import AgGrid
+from st_aggrid import AgGrid, GridOptionsBuilder, ColumnsAutoSizeMode
+from st_aggrid import GridOptionsBuilder, GridUpdateMode, DataReturnMode, AgGridTheme
+import aggrid_helper
 
 import datetime
 import pandas as pd
@@ -81,7 +85,7 @@ def display_course(course_filter: pd.DataFrame):
     - a line chart of submissions over time
     - a table of students, with color coding for overdue, near due, and submitted
     """
-    course = courses_df[courses_df['name']==course_filter].iloc[0]
+    course = courses_df[courses_df['shortname']==course_filter].iloc[0]
     course_info = enrollments[enrollments['name']==course['name']]
     #assigns = course_info['assignment'].drop_duplicates()
     assigns = assignments_df[assignments_df['course_id']==course['cid']].copy()
@@ -100,10 +104,7 @@ def display_course(course_filter: pd.DataFrame):
         due_date = datetime.datetime.strptime(due, date_format)
 
         with st.container():
-            ## TODO:
-            ## Can we do x of Y in a column, and make this smaller?
-
-            # Skip if it's not yet assigned!
+            # Skip homework if it's not yet assigned!
             if now < assigned_date:
                 continue
 
@@ -126,6 +127,9 @@ def display_course(course_filter: pd.DataFrame):
                 # st.write("Submissions over time:")
                 st.line_chart(data=by_time,x='Submission Time',y='Count')
 
+            late_df = df[df.apply(lambda x: is_overdue(x, due_date), axis=1)]['Email']
+            late_as_list = str(late_df.to_list())[1:-2].replace('\'','').replace(' ','')
+
             with col1:
                 # st.write("Students and submissions:")
                 st.dataframe(df.style.format(precision=0).apply(
@@ -143,6 +147,14 @@ def display_course(course_filter: pd.DataFrame):
                                 'Max Points':st.column_config.NumberColumn(step=1,format="$%d"),
                                 # 'Submission Time':st.column_config.DatetimeColumn(format="D MM YY, h:mm a")
                                 })
+                
+                if len(late_df > 0):
+                    URL_STRING = "mailto:" + late_as_list + "?subject=Late homework&body=Hi, we have not received your homework for " + course['name'].strip() + ". Please let us know if you need special accommodation."
+
+                    st.markdown(
+                        f'<a href="{URL_STRING}" style="display: inline-block; padding: 12px 20px; background-color: #4CAF50; color: white; text-align: center; text-decoration: none; font-size: 16px; border-radius: 4px;">Email late students</a>',
+                        unsafe_allow_html=True
+                    )
     st.divider()
 
 
@@ -150,40 +162,67 @@ enrollments = enrollments.sort_values(['due','assignment','Status','Total Score'
                                       ascending=[True,True,True,False,True,True])
 
 st.markdown("# Penn CIS Gradescope-Canvas Dashboard")
-
-num_panels = len(courses_df)
-
+# Inject custom CSS to set the width of the sidebar
+st.markdown(
+    """
+    <style>
+        section[data-testid="stSidebar"] {
+            width: 450px !important; # Set the width to your desired value
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 with st.sidebar:
-    #cols = st.columns(num_panels)
+    birds_eye = []
     for i, course in courses_df.iterrows():
-     #   with cols[i]:
-        st.write(course['shortname'])
-
         course_info = enrollments[enrollments['name']==course['name']]
 
         overdue = course_info[course_info.apply(lambda x: is_overdue(x, datetime.datetime.strptime(x['due'], date_format)), axis=1)].count()['sid']
         pending = course_info[course_info.apply(lambda x: is_near_due(x, datetime.datetime.strptime(x['due'], date_format)), axis=1)].count()['sid']
         submitted = course_info[course_info.apply(lambda x: is_submitted(x), axis=1)].count()['sid']
 
-        overall_df = pd.DataFrame([{"✓":submitted,"😅":pending,"😰":overdue}])
+        overall_df = pd.DataFrame([{'Course':course['shortname'],"😅":pending,"😰":overdue, "✓":submitted}])
+        birds_eye.append(overall_df)
 
-        overall_df.style.apply(
-                    lambda x: [f"background-color:pink" 
-                                if overdue >0
-                                else f'background-color:mistyrose' 
-                                    if pending >0
-                                    else 'background-color:lightgreen' for i in x],
-                    axis=1)
+    birds_eye_df = pd.concat(birds_eye)
+    birds_eye_df.style.apply(
+                lambda x: [f"background-color:pink" 
+                            if overdue >0
+                            else f'background-color:mistyrose' 
+                                if pending >0
+                                else 'background-color:lightgreen' for i in x],
+                axis=1)
+    
+ 
+    gb = GridOptionsBuilder.from_dataframe(birds_eye_df)
+                
+    #### Add hyperlinks
+    # gb.configure_column(
+    #     "Course",
+    #     headerName="Course",
+    #     width=100,
+    #     cellRenderer=aggrid_helper.add_url('Course', '/#status-of-cis-5450-2023-fall-big-data-analytics-on-campus')
+    # )
+    other_options = {'suppressColumnVirtualisation': True}
+    gb.configure_grid_options(**other_options)
 
-        st.dataframe(data=overall_df, hide_index=True)
+    gridOptions = gb.build()
+    gridOptions['getRowStyle'] = aggrid_helper.add_highlight('params.data["😅"] > 0 || params.data["😰"] > 0', 'black', 'mistyrose')
+
+    st.write("Overall status:")
+    grid = AgGrid(
+        birds_eye_df,
+        gridOptions=gridOptions,
+        columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS,
+        allow_unsafe_jscode=True
+        )
 
 
-## TODO: dashboard widgets showing number of overdue, near due, done
-##       overall and by course
 
 ## TODO: summary list of heavily overdue with mailto links?
 
-course_filter = st.selectbox("Select course", pd.unique(courses_df["name"]))
+course_filter = st.selectbox("Select course", pd.unique(courses_df["shortname"]))
 
 # for c,course in courses_df.iterrows():
 
