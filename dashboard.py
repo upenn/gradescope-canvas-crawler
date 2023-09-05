@@ -27,7 +27,7 @@ def get_students() -> pd.DataFrame:
 def get_assignments() -> pd.DataFrame:
     return pd.read_csv('gs_assignments.csv').rename(columns={'id':'assignment_id'})
 
-@st.cache_data
+#@st.cache_data
 def get_submissions() -> pd.DataFrame:
     # SID is useless because it is the Penn student ID *but can be null*
     return pd.read_csv('gs_submissions.csv')[['Email','Total Score','Max Points','Status','Submission ID','Submission Time','Lateness (H:M:S)','course_id','assign_id','First Name','Last Name']]
@@ -40,7 +40,7 @@ def get_assignments_and_submissions(assignments_df: pd.DataFrame, submissions_df
     '''
     return assignments_df.rename(columns={'name':'assignment', 'course_id':'crs'}).\
         merge(submissions_df, left_on=['assignment_id','crs'], right_on=['assign_id','course_id']).\
-        merge(courses_df,left_on='course_id', right_on='cid').drop(columns=['crs','course_id','shortname'])
+        merge(courses_df,left_on='course_id', right_on='cid').drop(columns=['crs','course_id'])
 
 
 ####
@@ -86,10 +86,10 @@ def display_course(course_filter: pd.DataFrame):
     - a table of students, with color coding for overdue, near due, and submitted
     """
     course = courses_df[courses_df['shortname']==course_filter].iloc[0]
-    course_info = enrollments[enrollments['name']==course['name']]
+    course_info = enrollments[enrollments['shortname']==course['shortname']]
     #assigns = course_info['assignment'].drop_duplicates()
     assigns = assignments_df[assignments_df['course_id']==course['cid']].copy()
-    st.subheader("Status of %s:"%course['name'])
+    st.subheader("Status of %s:"%course['shortname'])
 
     assigns['due'] = assigns['due'].apply(lambda x:pd.to_datetime(x) if x else None)
     assigns = assigns.sort_values('due',ascending=True)
@@ -129,6 +129,9 @@ def display_course(course_filter: pd.DataFrame):
 
             late_df = df[df.apply(lambda x: is_overdue(x, due_date), axis=1)]['Email']
             late_as_list = str(late_df.to_list())[1:-2].replace('\'','').replace(' ','')
+            
+            last_minute_df = df[df.apply(lambda x: is_near_due(x, due_date), axis=1)]['Email']
+            last_minute_as_list = str(last_minute_df.to_list())[1:-2].replace('\'','').replace(' ','')
 
             with col1:
                 # st.write("Students and submissions:")
@@ -140,26 +143,34 @@ def display_course(course_filter: pd.DataFrame):
                                     else 'background-color:lightgreen' if is_submitted(x) else '' for i in x],
                     axis=1), use_container_width=True,hide_index=True,
                             column_config={
-                                'name':None,'Email':None,'sid':None,'cid':None,
+                                'name':None,'sid':None,'cid':None,
                                 'assign_id':None,'Last Name':None,'First Name':None, 
                                 'assigned':None,'due': None,
+                                'shortname':None,
                                 'Total Score':st.column_config.NumberColumn(step=1,format="$%d"),
                                 'Max Points':st.column_config.NumberColumn(step=1,format="$%d"),
                                 # 'Submission Time':st.column_config.DatetimeColumn(format="D MM YY, h:mm a")
                                 })
                 
-                if len(late_df > 0):
-                    URL_STRING = "mailto:" + late_as_list + "?subject=Late homework&body=Hi, we have not received your homework for " + course['name'].strip() + ". Please let us know if you need special accommodation."
+                if len(late_df) > 0:
+                    URL_STRING = "mailto:" + late_as_list + "?subject=Late homework&body=Hi, we have not received your submission for " + assign['name'] + " for " + course['name'].strip() + ". Please let us know if you need special accommodation."
 
                     st.markdown(
                         f'<a href="{URL_STRING}" style="display: inline-block; padding: 12px 20px; background-color: #4CAF50; color: white; text-align: center; text-decoration: none; font-size: 16px; border-radius: 4px;">Email late students</a>',
+                        unsafe_allow_html=True
+                    )
+                if len(last_minute_df) > 0:
+                    URL_STRING = "mailto:" + last_minute_as_list + "?subject=Approaching deadline&body=Hi, as a reminder, " + assign['name'] + " for " + course['name'].strip() + " is nearly due. Please let us know if you need special accommodation."
+
+                    st.markdown(
+                        f'<a href="{URL_STRING}" style="display: inline-block; padding: 12px 20px; background-color: #4CAF50; color: white; text-align: center; text-decoration: none; font-size: 16px; border-radius: 4px;">Email reminder about deadline</a>',
                         unsafe_allow_html=True
                     )
     st.divider()
 
 
 enrollments = enrollments.sort_values(['due','assignment','Status','Total Score','Last Name','First Name'],
-                                      ascending=[True,True,True,False,True,True])
+                                      ascending=[True,True,True,True,True,True])
 
 st.markdown("# Penn CIS Gradescope-Canvas Dashboard")
 # Inject custom CSS to set the width of the sidebar
