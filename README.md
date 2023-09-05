@@ -39,6 +39,23 @@ After the script runs, there should be a series of files in the current director
 * `gs_extensions.csv` / `canvas_student_summaries.csv`: list of student info including late days, extensions, etc.
 * `gs_submissions.csv` / `canvas_submissions.csv`: list of homework submissions including timestamps, whether late, etc.
 
+## Usage
+
+On a daily basis, you should run the crawler tool to generate a fresh version of your course data (perhaps through `chron`):
+
+```
+python collect_events.py
+```
+
+To see the dashboard, run:
+
+```
+streamlit dashboard.py
+```
+
+
+## API Alternative
+
 Alternatively, you can use the libraries directly:
 
 ```
