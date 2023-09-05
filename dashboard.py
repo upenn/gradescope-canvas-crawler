@@ -119,13 +119,14 @@ def display_course(course_filter: pd.DataFrame):
             # by_time['Submission Time'] = by_time['Submission Time'].apply(lambda x: 
             #                                                                 datetime.datetime(x.year,x.month,x.day,0,0,0,0,tzinfo=timezone(offset=timedelta())) 
             #                                                                 if x.year > 0 else None)
-            by_time = by_time.set_index('Submission Time')
+            by_time = by_time.set_index(pd.DatetimeIndex(by_time['Submission Time']))
 
-            by_time = df.groupby('Submission Time').count().reset_index()
-            by_time = by_time[['Submission Time','Total Score']].rename(columns={'Total Score':'Count'})
+            # by_time = df.groupby('Submission Time').count().reset_index()
+            by_time = by_time.groupby(pd.Grouper(freq='1D', label='right')).count()
+            by_time = by_time[['Submission Time','Total Score']].rename(columns={'Submission Time': 'Day', 'Total Score':'Count'})
             with col2:
                 # st.write("Submissions over time:")
-                st.line_chart(data=by_time,x='Submission Time',y='Count')
+                st.line_chart(data=by_time,x='Day',y='Count')
 
             late_df = df[df.apply(lambda x: is_overdue(x, due_date), axis=1)]['Email']
             late_as_list = str(late_df.to_list())[1:-2].replace('\'','').replace(' ','')

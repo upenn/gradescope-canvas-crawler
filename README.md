@@ -6,6 +6,8 @@ Our goal is a single aggregation point for tracking student progress (and trigge
 
 We pull from both the Gradescope and Canvas APIs.
 
+![Dashboard](dashboard-screenshot.png)
+
 ## Getting Started
 
 This library requires a bit of setup to ensure it crawls Gradescope and Canvas appropriately.
