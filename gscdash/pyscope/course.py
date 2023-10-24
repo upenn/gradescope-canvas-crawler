@@ -193,11 +193,15 @@ class GSCourse:
                 due = assignment['submission_window']['due_date']
                 if assigned is None or assigned == "" or 'false' in assigned:
                     assigned = None
+                    if assignment['due_or_created_at_date']:
+                        assigned = datetime.strptime(assignment['due_or_created_at_date'], datefmt)
                 else:
                     assigned = datetime.strptime(assigned, datefmt)
 
                 if due is None or due == "":
                     due = None
+                    if assignment['due_or_created_at_date']:
+                        due = datetime.strptime(assignment['due_or_created_at_date'], datefmt)
                 else:
                     due = datetime.strptime(due, datefmt)
 

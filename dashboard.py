@@ -46,8 +46,8 @@ def get_assignments_and_submissions(assignments_df: pd.DataFrame, submissions_df
 ####
 ## Reference time, in our time zone
 now = datetime.datetime.now()
-now = datetime.datetime(now.year, now.month, now.day, now.hour, now.minute,now.second,now.microsecond, tzinfo=timezone(offset=timedelta()))
-date_format = '%Y-%m-%d %H:%M:%S%z'
+#now = datetime.datetime(now.year, now.month, now.day, now.hour, now.minute,now.second,now.microsecond, tzinfo=timezone(offset=timedelta()))
+date_format = '%Y-%m-%d %H:%M:%S'
 
 
 #####################################################
