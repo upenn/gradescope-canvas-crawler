@@ -88,7 +88,7 @@ def display_course(course_filter: pd.DataFrame):
     course = courses_df[courses_df['shortname']==course_filter].iloc[0]
     course_info = enrollments[enrollments['shortname']==course['shortname']]
     #assigns = course_info['assignment'].drop_duplicates()
-    assigns = assignments_df[assignments_df['course_id']==course['cid']].copy()
+    assigns = assignments_df[assignments_df['course_id']==course['cid']].copy().dropna()
     st.subheader("Status of %s:"%course['shortname'])
 
     assigns['due'] = assigns['due'].apply(lambda x:pd.to_datetime(x) if x else None)
@@ -114,7 +114,7 @@ def display_course(course_filter: pd.DataFrame):
 
             col1, col2 = st.tabs(['Students','Submissions by time'])#columns(2)
 
-            by_time = df.copy()
+            by_time = df.copy().dropna()
             by_time['Submission Time'] = by_time['Submission Time'].apply(lambda x:pd.to_datetime(x) if x else None)
             # by_time['Submission Time'] = by_time['Submission Time'].apply(lambda x: 
             #                                                                 datetime.datetime(x.year,x.month,x.day,0,0,0,0,tzinfo=timezone(offset=timedelta())) 

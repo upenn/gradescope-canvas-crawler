@@ -4,7 +4,7 @@ from datetime import datetime
 from gscdash.pyscope.person import GSPerson
 from gscdash.pyscope.person import GSRole
 from gscdash.pyscope.assignment import GSAssignment
-
+import json
 
 class LoadedCapabilities(Enum):
     ASSIGNMENTS = 0
@@ -98,65 +98,122 @@ class GSCourse:
         parsed = BeautifulSoup(assignments_resp.text, "html.parser")
         is_instructor = False
 
+        assignments_table = None
+
         # If it's a student, they only have the Dashboard list
         if 'You are not authorized to access this page.' in parsed.text:
             assignments_resp = self.session.get("https://www.gradescope.com/courses/" + self.cid)
             parsed = BeautifulSoup(assignments_resp.text, "html.parser")
             assignments_table = parsed.find("table", id="assignments-student-table")
             is_instructor = True
-        else:
+        elif parsed.find("table", id="assignments-instructor-table"):
             assignments_table = parsed.find("table", id="assignments-instructor-table")
 
-        assignments_table_body = assignments_table.find("tbody")
-
-        datefmt = "%Y-%m-%d %H:%M:%S %z"
 
         assignments = []
 
-        for row in assignments_table_body.find_all("tr"):            
-            name = row.find("th", class_="table--primaryLink")
+        if assignments_table:
+            datefmt = "%Y-%m-%d %H:%M:%S %z"
+            assignments_table_body = assignments_table.find("tbody")
 
-            if not name:
-                name = row.find("div", class_="assignments--rowTitle")
+            for row in assignments_table_body.find_all("tr"):            
+                name = row.find("th", class_="table--primaryLink")
 
-            if name.find('a') and name.find('a').get('href'):
-                assign_id = name.find('a').get('href').split('/')[-1]
-            else:
-                assign_id = None
-                # assign_id = name.find('a').get('href').split('/')[-1]
-            name = name.text
+                if not name:
+                    name = row.find("div", class_="assignments--rowTitle")
 
-            timeline_cols = row.find_all("td", {"class": "table--hiddenColumn"})
+                if name.find('a') and name.find('a').get('href'):
+                    assign_id = name.find('a').get('href').split('/')[-1]
+                else:
+                    assign_id = None
+                    # assign_id = name.find('a').get('href').split('/')[-1]
+                name = name.text
 
-            if not timeline_cols or len(timeline_cols) == 0:
-                timeline_cols = row.find_all("td", {"class": "hidden-column"})
+                timeline_cols = row.find_all("td", {"class": "table--hiddenColumn"})
 
-            assigned = timeline_cols[0].text
-            due = timeline_cols[1].text
+                if not timeline_cols or len(timeline_cols) == 0:
+                    timeline_cols = row.find_all("td", {"class": "hidden-column"})
 
-            if assigned is None or assigned == "" or 'false' in assigned:
-                assigned = None
-            else:
-                assigned = datetime.strptime(assigned, datefmt)
+                assigned = timeline_cols[0].text
+                due = timeline_cols[1].text
 
-            if due is None or due == "":
-                due = None
-            else:
-                due = datetime.strptime(due, datefmt)
+                if assigned is None or assigned == "" or 'false' in assigned:
+                    assigned = None
+                else:
+                    assigned = datetime.strptime(assigned, datefmt)
 
-            if assign_id:
-                assignments.append( {
-                        "id": assign_id,
-                        "name": name,
-                        "assigned": assigned,
-                        "due": due,
-                    })
-            else:
-                assignments.append( {
-                        "name": name,
-                        "assigned": assigned,
-                        "due": due,
-                    })
+                if due is None or due == "":
+                    due = None
+                else:
+                    due = datetime.strptime(due, datefmt)
+
+                if assign_id:
+                    assignments.append( {
+                            "id": assign_id,
+                            "name": name,
+                            "assigned": assigned,
+                            "due": due,
+                        })
+                else:
+                    assignments.append( {
+                            "name": name,
+                            "assigned": assigned,
+                            "due": due,
+                        })
+        else:
+            # New format
+            datefmt = "%Y-%m-%dT%H:%M"
+            assignments_content = parsed.find("div", attrs={'data-react-class': 'AssignmentsTable'})['data-react-props']
+
+            assignments_content.replace('&quot;', '"')
+
+            # TODO: get assign_id, name, assigned, and due
+            assignments_list = json.loads(assignments_content)['table_data']
+
+            for assignment in assignments_list:
+                if 'id' in assignment:
+                    assign_id = assignment['id'].replace('assignment_','')
+                else:
+                    assign_id = None
+                name = assignment['title']
+
+                if assign_id and 'container_' in assign_id:
+                    print ('Skipping assignment container {}'.format(name))
+                    continue
+
+                if assign_id and 'section_' in assign_id:
+                    print ('Skipping assignment section {}'.format(name))
+                    continue
+
+                if 'submission_window' not in assignment:
+                    print('Skipping deadline-free assignment {}'.format(name))
+                    continue
+
+                assigned = assignment['submission_window']['release_date']
+                due = assignment['submission_window']['due_date']
+                if assigned is None or assigned == "" or 'false' in assigned:
+                    assigned = None
+                else:
+                    assigned = datetime.strptime(assigned, datefmt)
+
+                if due is None or due == "":
+                    due = None
+                else:
+                    due = datetime.strptime(due, datefmt)
+
+                if assign_id:
+                    assignments.append( {
+                            "id": assign_id,
+                            "name": name,
+                            "assigned": assigned,
+                            "due": due,
+                        })
+                else:
+                    assignments.append( {
+                            "name": name,
+                            "assigned": assigned,
+                            "due": due,
+                        })
 
         return assignments
 
