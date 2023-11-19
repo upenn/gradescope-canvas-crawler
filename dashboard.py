@@ -4,6 +4,7 @@ from st_aggrid import AgGrid
 from st_aggrid import AgGrid, GridOptionsBuilder, ColumnsAutoSizeMode
 from st_aggrid import GridOptionsBuilder, GridUpdateMode, DataReturnMode, AgGridTheme
 import aggrid_helper
+from sources import get_assignments, get_courses, get_students, get_submissions, get_assignments_and_submissions, get_course_student_status
 
 import datetime
 import pandas as pd
@@ -11,37 +12,6 @@ import numpy as np
 import json
 import pytz
 from datetime import timezone, timedelta
-
-@st.cache_data
-def get_courses() -> pd.DataFrame:
-    return pd.read_csv('gs_courses.csv')
-
-@st.cache_data
-def get_students() -> pd.DataFrame:
-    students_df = pd.read_csv('gs_students.csv').rename(columns={'name':'student'})
-    students_df['emails2'] = students_df['emails'].apply(lambda x: json.loads(x.replace('\'','"')) if x else None)
-    students_df = students_df.explode('emails2').drop(columns=['emails'])
-    return students_df
-
-@st.cache_data
-def get_assignments() -> pd.DataFrame:
-    return pd.read_csv('gs_assignments.csv').rename(columns={'id':'assignment_id'})
-
-#@st.cache_data
-def get_submissions() -> pd.DataFrame:
-    # SID is useless because it is the Penn student ID *but can be null*
-    return pd.read_csv('gs_submissions.csv')[['Email','Total Score','Max Points','Status','Submission ID','Submission Time','Lateness (H:M:S)','course_id','assign_id','First Name','Last Name']]
-
-def get_assignments_and_submissions(assignments_df: pd.DataFrame, submissions_df: pd.DataFrame) -> pd.DataFrame:
-    '''
-    Joins assignments and submissions, paying attention to course ID as well as assignment ID
-
-    Also drops some duplicates
-    '''
-    return assignments_df.rename(columns={'name':'assignment', 'course_id':'crs'}).\
-        merge(submissions_df, left_on=['assignment_id','crs'], right_on=['assign_id','course_id']).\
-        merge(courses_df,left_on='course_id', right_on='cid').drop(columns=['crs','course_id'])
-
 
 ####
 ## Reference time, in our time zone
@@ -64,7 +34,7 @@ assignments_df = get_assignments()
 ## We have to do this not on student ID but on email address.
 ## It's very possible to have null student IDs
 enrollments = students_df.\
-    merge(get_assignments_and_submissions(assignments_df,submissions_df), left_on='emails2', right_on='Email').\
+    merge(get_assignments_and_submissions(courses_df, assignments_df,submissions_df), left_on='emails2', right_on='Email').\
     drop(columns=['course_id','year','course_id','assign_id','emails2','Submission ID'])
 
 def is_unsubmitted(x):
@@ -115,7 +85,7 @@ def display_course(course_filter: pd.DataFrame):
             col1, col2 = st.tabs(['Students','Submissions by time'])#columns(2)
 
             by_time = df.copy().dropna()
-            by_time['Submission Time'] = by_time['Submission Time'].apply(lambda x:pd.to_datetime(x) if x else None)
+            by_time['Submission Time'] = by_time['Submission Time'].apply(lambda x:pd.to_datetime(x, utc=True) if x else None)
             # by_time['Submission Time'] = by_time['Submission Time'].apply(lambda x: 
             #                                                                 datetime.datetime(x.year,x.month,x.day,0,0,0,0,tzinfo=timezone(offset=timedelta())) 
             #                                                                 if x.year > 0 else None)
@@ -186,18 +156,21 @@ st.markdown(
     unsafe_allow_html=True,
 )
 with st.sidebar:
-    birds_eye = []
-    for i, course in courses_df.iterrows():
-        course_info = enrollments[enrollments['name']==course['name']]
+    # birds_eye = []
+    # for i, course in courses_df.iterrows():
+    #     course_info = enrollments[enrollments['name']==course['name']]
 
-        overdue = course_info[course_info.apply(lambda x: is_overdue(x, datetime.datetime.strptime(x['due'], date_format)), axis=1)].count()['sid']
-        pending = course_info[course_info.apply(lambda x: is_near_due(x, datetime.datetime.strptime(x['due'], date_format)), axis=1)].count()['sid']
-        submitted = course_info[course_info.apply(lambda x: is_submitted(x), axis=1)].count()['sid']
+    #     overdue = course_info[course_info.apply(lambda x: is_overdue(x, datetime.datetime.strptime(x['due'], date_format)), axis=1)].count()['sid']
+    #     pending = course_info[course_info.apply(lambda x: is_near_due(x, datetime.datetime.strptime(x['due'], date_format)), axis=1)].count()['sid']
+    #     submitted = course_info[course_info.apply(lambda x: is_submitted(x), axis=1)].count()['sid']
 
-        overall_df = pd.DataFrame([{'Course':course['shortname'],"😅":pending,"😰":overdue, "✓":submitted}])
-        birds_eye.append(overall_df)
+    #     overall_df = pd.DataFrame([{'Course':course['shortname'],"😅":pending,"😰":overdue, "✓":submitted}])
+    #     birds_eye.append(overall_df)
 
-    birds_eye_df = pd.concat(birds_eye)
+    # birds_eye_df = pd.concat(birds_eye)
+
+    course_info = enrollments.merge(courses_df.drop(columns=['shortname','name']),left_on='cid', right_on='cid')
+    birds_eye_df = get_course_student_status(course_info, 'cid', 'shortname', 'due', 'sid', is_overdue, is_near_due, is_submitted)
     birds_eye_df.style.apply(
                 lambda x: [f"background-color:pink" 
                             if overdue >0
@@ -206,6 +179,8 @@ with st.sidebar:
                                 else 'background-color:lightgreen' for i in x],
                 axis=1)
     
+    # birds_eye.append(birds_eye_df)
+    # birds_eye_df = pd.concat(birds_eye)
  
     gb = GridOptionsBuilder.from_dataframe(birds_eye_df)
                 
