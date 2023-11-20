@@ -389,6 +389,10 @@ class GSCourse:
             # print (row[0])
             data_id = row[0].find("button", class_="rosterCell--editIcon").get("data-id")
 
+            user_id = row[0].find("button", class_="js-rosterName")
+            if user_id:
+                user_id = user_id.get('data-url').split('?')[-1].split('=')[-1]
+
             if len(row) >= 4 and row[2].find("option", selected="selected"):
                 email = row[1].text
                 role = row[2].find("option", selected="selected").text
@@ -404,7 +408,7 @@ class GSCourse:
                     submissions = int(row[4].text)
                     linked = True if "statusIcon-active" in row[5].find("i").get("class") else False
             # TODO Make types reasonable.
-            self.roster[name] = GSPerson(name, data_id, email, role, submissions, linked)
+            self.roster[name] = GSPerson(name, data_id, email, role, submissions, linked, user_id)
         self.state.add(LoadedCapabilities.ROSTER)
 
     def _check_capabilities(self, needed):

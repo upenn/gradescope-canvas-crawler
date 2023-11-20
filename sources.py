@@ -19,13 +19,23 @@ def get_students() -> pd.DataFrame:
 def get_assignments() -> pd.DataFrame:
     return pd.read_csv('gs_assignments.csv').rename(columns={'id':'assignment_id'})
 
-#@st.cache_data
+@st.cache_data
 def get_submissions(do_all = False) -> pd.DataFrame:
     # SID is useless because it is the Penn student ID *but can be null*
     if not do_all:
         return pd.read_csv('gs_submissions.csv')[['Email','Total Score','Max Points','Status','Submission ID','Submission Time','Lateness (H:M:S)','course_id','Sections','assign_id','First Name','Last Name']]
     else:
         return pd.read_csv('gs_submissions.csv').drop(columns=['SID','View Count', 'Submission Count'])
+
+@st.cache_data
+def get_extensions() -> pd.DataFrame:
+    return pd.read_csv('gs_extensions.csv')
+
+@st.cache_data
+def get_submissions_ext(do_all = False) -> pd.DataFrame:
+    # SID is useless because it is the Penn student ID *but can be null*
+    sub = get_submissions(do_all).merge(get_extensions(),left_on=['course_id','assign_id'], right_on=['course_id', 'assign_id'], how='left')
+    return sub
 
 def get_assignments_and_submissions(courses_df: pd.DataFrame, assignments_df: pd.DataFrame, submissions_df: pd.DataFrame) -> pd.DataFrame:
     '''

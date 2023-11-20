@@ -95,9 +95,8 @@ def display_course(course_filter: pd.DataFrame):
     col1, col2 = st.tabs(['Totals','Detailed'])
 
     with col1:
-        display_hw_totals()
-        #display_hw_assignment_scores()
-        #display_hw_question_scores()
+        display_hw_totals(course)
+        #display_hw_assignment_scores(course)
 
 
     with col2:
@@ -153,13 +152,18 @@ def display_birds_eye(birds_eye_df: pd.DataFrame) -> None:
         allow_unsafe_jscode=True
         )
 
-def display_hw_assignment_scores() -> None:
-    st.markdown('## Students by assignment')
+def display_hw_assignment_scores(course = None) -> None:
+    st.markdown('## Student Scores by Assignment')
+
+    courses = get_courses()
+    if course is not None:
+        courses = courses[courses['cid'] == course['cid']]
+
     scores = get_submissions().\
         merge(get_assignments().rename(columns={'name': 'assignment'}), \
             left_on=['course_id','assign_id'], \
                 right_on=['course_id','assignment_id']).\
-                    merge(get_courses().drop(columns=['name','year']).rename(columns={'shortname':'course'}), \
+                    merge(courses.drop(columns=['name','year']).rename(columns={'shortname':'course'}), \
                         left_on='course_id', right_on='cid')\
                             [[#'course', 
                               'First Name', 'Last Name', 'Email', 'assignment', 'Total Score', 'due', 'Status', 'Lateness (H:M:S)']].\
@@ -169,13 +173,18 @@ def display_hw_assignment_scores() -> None:
 
     st.dataframe(scores)
 
-def display_hw_totals() -> None:
-    st.markdown('## Students by total score')
+def display_hw_totals(course = None) -> None:
+    st.markdown('## Student Aggregate Status')
+
+    courses = get_courses()
+    if course is not None:
+        courses = courses[courses['cid'] == course['cid']]
+
     scores = get_submissions().\
         merge(get_assignments().rename(columns={'name': 'assignment'}), \
             left_on=['course_id','assign_id'], \
                 right_on=['course_id','assignment_id']).\
-                    merge(get_courses().drop(columns=['name','year']).rename(columns={'shortname':'course'}), \
+                    merge(courses.drop(columns=['name','year']).rename(columns={'shortname':'course'}), \
                         left_on='course_id', right_on='cid')\
                             [[#'course', 
                               'First Name', 'Last Name', 'Email', 'assignment', 'Total Score', 'due', 'Status', 'Lateness (H:M:S)']].\
@@ -185,6 +194,9 @@ def display_hw_totals() -> None:
         #melt(id_vars=['First Name', 'Last Name', 'Email', 'Sections', 'course_id', 'assign_id', 'Submission ID', 'Total Score', 'Max Points', 'Submission Time', 'Status', 'Lateness (H:M:S)']).\
 
     mean  = scores['Total Score'].mean()
+
+    st.markdown('Out of {} students, the mean score is {} out of {}'.format(int(len(scores)), int(mean), int(scores['Total Score'].max())))
+
     st.dataframe(scores.style.format(precision=0).apply(
         lambda x: [f"background-color:pink" 
                     if is_far_below_mean(x, mean) 
