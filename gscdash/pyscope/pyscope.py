@@ -197,7 +197,7 @@ class GSConnection(CourseApi):
 
                 # print("{}".format(ext_table))
                 try:
-                    tab_list = pd.read_html(ext_table)
+                    tab_list = pd.read_html(StringIO(ext_table))
 
                     # print (tab_list)
 

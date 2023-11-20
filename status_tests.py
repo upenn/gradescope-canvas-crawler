@@ -20,4 +20,8 @@ def is_near_due(x, due):
 def is_submitted(x):
     return x['Status'] != 'Missing'
 
+def is_below_mean(x, mean):
+    return x['Total Score'] < mean
 
+def is_far_below_mean(x, mean):
+    return x['Total Score'] < mean/3

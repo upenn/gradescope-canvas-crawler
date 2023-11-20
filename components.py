@@ -6,9 +6,9 @@ import aggrid_helper
 import pandas as pd
 from datetime import datetime, timezone, timedelta
 
-from sources import get_courses, get_assignments, get_course_enrollments
+from sources import get_courses, get_assignments, get_course_enrollments, get_submissions
 
-from status_tests import is_overdue, is_near_due, is_submitted, now, date_format
+from status_tests import is_overdue, is_near_due, is_submitted, now, date_format, is_below_mean, is_far_below_mean
 
 
 def display_hw_status(course_name:str, assign:pd.DataFrame, due_date: datetime, df: pd.DataFrame) -> None:
@@ -92,25 +92,34 @@ def display_course(course_filter: pd.DataFrame):
     assigns = assignments_df[assignments_df['course_id']==course['cid']].copy().dropna()
     st.subheader("Status of %s:"%course['shortname'])
 
-    assigns['due'] = assigns['due'].apply(lambda x:pd.to_datetime(x) if x else None)
-    assigns = assigns.sort_values('due',ascending=True)
+    col1, col2 = st.tabs(['Totals','Detailed'])
 
-    for a,assign in assigns.iterrows():
-        df = course_info[course_info['assignment_id']==assign['assignment_id']].\
-            drop(columns=['sid','cid','assignment_id','assignment','Last Name','First Name'])
-        
-        assigned = list(df['assigned'].drop_duplicates())[0]
-        due = list(df['due'].drop_duplicates())[0]
-        assigned_date = datetime.strptime(assigned, date_format)
-        due_date = datetime.strptime(due, date_format)
+    with col1:
+        display_hw_totals()
+        #display_hw_assignment_scores()
+        #display_hw_question_scores()
 
-        with st.container():
-            # Skip homework if it's not yet assigned!
-            if now < assigned_date:
-                continue
 
-            display_hw_status(course['name'], assign, due_date, df)
-    st.divider()
+    with col2:
+        assigns['due'] = assigns['due'].apply(lambda x:pd.to_datetime(x) if x else None)
+        assigns = assigns.sort_values('due',ascending=True)
+
+        for a,assign in assigns.iterrows():
+            df = course_info[course_info['assignment_id']==assign['assignment_id']].\
+                drop(columns=['sid','cid','assignment_id','assignment','Last Name','First Name'])
+            
+            assigned = list(df['assigned'].drop_duplicates())[0]
+            due = list(df['due'].drop_duplicates())[0]
+            assigned_date = datetime.strptime(assigned, date_format)
+            due_date = datetime.strptime(due, date_format)
+
+            with st.container():
+                # Skip homework if it's not yet assigned!
+                if now < assigned_date:
+                    continue
+
+                display_hw_status(course['name'], assign, due_date, df)
+        st.divider()
 
 def display_birds_eye(birds_eye_df: pd.DataFrame) -> None:
     birds_eye_df.style.apply(
@@ -143,4 +152,52 @@ def display_birds_eye(birds_eye_df: pd.DataFrame) -> None:
         columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS,
         allow_unsafe_jscode=True
         )
+
+def display_hw_assignment_scores() -> None:
+    st.markdown('## Students by assignment')
+    scores = get_submissions().\
+        merge(get_assignments().rename(columns={'name': 'assignment'}), \
+            left_on=['course_id','assign_id'], \
+                right_on=['course_id','assignment_id']).\
+                    merge(get_courses().drop(columns=['name','year']).rename(columns={'shortname':'course'}), \
+                        left_on='course_id', right_on='cid')\
+                            [[#'course', 
+                              'First Name', 'Last Name', 'Email', 'assignment', 'Total Score', 'due', 'Status', 'Lateness (H:M:S)']].\
+                            sort_values(by=['due', 'Last Name', 'First Name'])
+
+        #melt(id_vars=['First Name', 'Last Name', 'Email', 'Sections', 'course_id', 'assign_id', 'Submission ID', 'Total Score', 'Max Points', 'Submission Time', 'Status', 'Lateness (H:M:S)']).\
+
+    st.dataframe(scores)
+
+def display_hw_totals() -> None:
+    st.markdown('## Students by total score')
+    scores = get_submissions().\
+        merge(get_assignments().rename(columns={'name': 'assignment'}), \
+            left_on=['course_id','assign_id'], \
+                right_on=['course_id','assignment_id']).\
+                    merge(get_courses().drop(columns=['name','year']).rename(columns={'shortname':'course'}), \
+                        left_on='course_id', right_on='cid')\
+                            [[#'course', 
+                              'First Name', 'Last Name', 'Email', 'assignment', 'Total Score', 'due', 'Status', 'Lateness (H:M:S)']].\
+                            groupby(by=['Email','Last Name','First Name']).sum()['Total Score'].reset_index().\
+                            sort_values(by=['Total Score'])
+
+        #melt(id_vars=['First Name', 'Last Name', 'Email', 'Sections', 'course_id', 'assign_id', 'Submission ID', 'Total Score', 'Max Points', 'Submission Time', 'Status', 'Lateness (H:M:S)']).\
+
+    mean  = scores['Total Score'].mean()
+    st.dataframe(scores.style.format(precision=0).apply(
+        lambda x: [f"background-color:pink" 
+                    if is_far_below_mean(x, mean) 
+                    else f'background-color:mistyrose' 
+                        if is_below_mean(x, mean) 
+                        else 'background-color:lightgreen' for i in x],
+        axis=1), use_container_width=True,hide_index=True,
+                column_config={
+                    'name':None,'sid':None,'cid':None,
+                    'assign_id':None,
+                    'assigned':None,'due': None,
+                    'shortname':None,
+                    'Total Score':st.column_config.NumberColumn(step=1,format="$%d")
+                    # 'Submission Time':st.column_config.DatetimeColumn(format="D MM YY, h:mm a")
+                    })
 

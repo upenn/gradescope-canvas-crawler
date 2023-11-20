@@ -20,9 +20,12 @@ def get_assignments() -> pd.DataFrame:
     return pd.read_csv('gs_assignments.csv').rename(columns={'id':'assignment_id'})
 
 #@st.cache_data
-def get_submissions() -> pd.DataFrame:
+def get_submissions(do_all = False) -> pd.DataFrame:
     # SID is useless because it is the Penn student ID *but can be null*
-    return pd.read_csv('gs_submissions.csv')[['Email','Total Score','Max Points','Status','Submission ID','Submission Time','Lateness (H:M:S)','course_id','assign_id','First Name','Last Name']]
+    if not do_all:
+        return pd.read_csv('gs_submissions.csv')[['Email','Total Score','Max Points','Status','Submission ID','Submission Time','Lateness (H:M:S)','course_id','Sections','assign_id','First Name','Last Name']]
+    else:
+        return pd.read_csv('gs_submissions.csv').drop(columns=['SID','View Count', 'Submission Count'])
 
 def get_assignments_and_submissions(courses_df: pd.DataFrame, assignments_df: pd.DataFrame, submissions_df: pd.DataFrame) -> pd.DataFrame:
     '''
@@ -41,8 +44,11 @@ def get_course_names():
     return get_courses().drop_duplicates().rename(columns={'shortname':'Course'}).set_index('cid')['Course']
 
 def get_course_enrollments():
+    """
+    Information about each course, students, and submissions
+    """
     enrollments = get_students().\
-        merge(get_assignments_and_submissions(get_courses(), get_assignments(),get_submissions()), left_on='emails2', right_on='Email').\
+        merge(get_assignments_and_submissions(get_courses(), get_assignments(), get_submissions()), left_on='emails2', right_on='Email').\
         drop(columns=['course_id','year','course_id','assign_id','emails2','Submission ID'])
 
     enrollments = enrollments.sort_values(['due','assignment','Status','Total Score','Last Name','First Name'],
@@ -67,11 +73,11 @@ def get_course_student_status_summary(
     enrollments = get_course_enrollments()
     useful = enrollments.merge(get_courses().drop(columns=['shortname','name']),left_on='cid', right_on='cid').rename(columns={'shortname':'Course'})
 
-    useful['😅'] = useful.apply(lambda x: is_overdue(x, datetime.strptime(x[due_date], date_format)), axis=1)
-    useful['😰'] = useful.apply(lambda x: is_near_due(x, datetime.strptime(x[due_date], date_format)), axis=1)
+    useful['😰'] = useful.apply(lambda x: is_overdue(x, datetime.strptime(x[due_date], date_format)), axis=1)
+    useful['😅'] = useful.apply(lambda x: is_near_due(x, datetime.strptime(x[due_date], date_format)), axis=1)
     useful['✓'] = useful.apply(lambda x: is_submitted(x), axis=1)
 
     ids_to_short = enrollments[['cid','shortname']].drop_duplicates().rename(columns={'shortname':'Course'}).set_index('cid')
 
-    return useful[[course_col,'😅','😰','✓']].groupby(course_col).sum().join(ids_to_short)[['Course','😅','😰','✓']]
+    return useful[[course_col,'😰','😅','✓']].groupby(course_col).sum().join(ids_to_short)[['Course','😰','😅','✓']]
 
