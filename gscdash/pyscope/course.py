@@ -20,6 +20,7 @@ class GSCourse:
         self.year = year
         self.session = session
         self.assignments = {}
+        self.lti = None
         self.roster = {}  # TODO: Maybe shouldn't dict.
         self.state = (
             set()
@@ -91,6 +92,23 @@ class GSCourse:
         # TODO this is highly wasteful, need to likely improve this.
         self.roster = {}
         self._lazy_load_roster()
+
+    def get_lti_link(self):
+        # Only instructor has access to this version
+        settings_resp = self.session.get("https://www.gradescope.com/courses/" + self.cid + '/edit')
+        parsed = BeautifulSoup(settings_resp.text, "html.parser")
+        is_instructor = False
+
+        edit_form = None
+
+        # If it's a student, they only have the Dashboard list
+        if 'You are not authorized to access this page.' in parsed.text:
+            print ("No auth")
+            return
+
+        edit_form = parsed.find("form", id="edit_course_form")
+        self.lti = edit_form.find("span", class_="lmsResourceLink")['data-lms-id']
+        print(edit_form)
 
     def get_assignments(self):
         # Only instructor has access to this version
