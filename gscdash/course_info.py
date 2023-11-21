@@ -48,14 +48,16 @@ class Person:
     student_id: str
     name: str
     emails: List[str]
+    user_id: str
 
     def __str__(self, key):
-        return '{}, {}, {}'.format(self.student_id, self.name, self.emails)
+        return '{}, {}, {}, {}'.format(self.student_id, self.name, self.emails, self.user_id)
     
     def __iter__(self):
         yield self.student_id
         yield self.name
         yield self.emails
+        yield self.user_id
 
 class CourseApi:
     @abstractmethod

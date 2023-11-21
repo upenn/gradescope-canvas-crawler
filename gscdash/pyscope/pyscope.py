@@ -166,7 +166,7 @@ class GSConnection(CourseApi):
     def get_students_df(self, course: GSCourse) -> pd.DataFrame:
         ret = pd.DataFrame(self.get_students(course))
         if len(ret):
-            ret.columns = ['sid', 'name', 'emails']
+            ret.columns = ['sid', 'name', 'emails', 'user_id']
         return ret
 
     def get_assignment_submissions_df(self, course: GSCourse) -> pd.DataFrame:
@@ -197,13 +197,17 @@ class GSConnection(CourseApi):
 
                 # print("{}".format(ext_table))
                 try:
-                    tab_list = pd.read_html(ext_table)
+                    tab_list = pd.read_html(StringIO(ext_table))
 
                     # print (tab_list)
 
                     extensions.append(tab_list[0])
                     extensions[-1]['course_id'] = course.cid
                     extensions[-1]['assign_id'] = assignment['id']
+
+                    ## TODO: find the first <table>
+                    ## Then go into <tbody> and for each <tr> find the <td> with a <div data-react-class="EditExtension">.  Find the data-react-props.
+                    ## Look for {&quot;user_id&quot;:<<id>>
                 except ValueError:
                     pass
         return extensions

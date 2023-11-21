@@ -4,7 +4,7 @@ from datetime import datetime
 from gscdash.pyscope.person import GSPerson
 from gscdash.pyscope.person import GSRole
 from gscdash.pyscope.assignment import GSAssignment
-
+import json
 
 class LoadedCapabilities(Enum):
     ASSIGNMENTS = 0
@@ -98,65 +98,126 @@ class GSCourse:
         parsed = BeautifulSoup(assignments_resp.text, "html.parser")
         is_instructor = False
 
+        assignments_table = None
+
         # If it's a student, they only have the Dashboard list
         if 'You are not authorized to access this page.' in parsed.text:
             assignments_resp = self.session.get("https://www.gradescope.com/courses/" + self.cid)
             parsed = BeautifulSoup(assignments_resp.text, "html.parser")
             assignments_table = parsed.find("table", id="assignments-student-table")
             is_instructor = True
-        else:
+        elif parsed.find("table", id="assignments-instructor-table"):
             assignments_table = parsed.find("table", id="assignments-instructor-table")
 
-        assignments_table_body = assignments_table.find("tbody")
-
-        datefmt = "%Y-%m-%d %H:%M:%S %z"
 
         assignments = []
 
-        for row in assignments_table_body.find_all("tr"):            
-            name = row.find("th", class_="table--primaryLink")
+        if assignments_table:
+            datefmt = "%Y-%m-%d %H:%M:%S %z"
+            assignments_table_body = assignments_table.find("tbody")
 
-            if not name:
-                name = row.find("div", class_="assignments--rowTitle")
+            for row in assignments_table_body.find_all("tr"):            
+                name = row.find("th", class_="table--primaryLink")
 
-            if name.find('a') and name.find('a').get('href'):
-                assign_id = name.find('a').get('href').split('/')[-1]
-            else:
-                assign_id = None
-                # assign_id = name.find('a').get('href').split('/')[-1]
-            name = name.text
+                if not name:
+                    name = row.find("div", class_="assignments--rowTitle")
 
-            timeline_cols = row.find_all("td", {"class": "table--hiddenColumn"})
+                if name.find('a') and name.find('a').get('href'):
+                    assign_id = name.find('a').get('href').split('/')[-1]
+                else:
+                    assign_id = None
+                    # assign_id = name.find('a').get('href').split('/')[-1]
+                name = name.text
 
-            if not timeline_cols or len(timeline_cols) == 0:
-                timeline_cols = row.find_all("td", {"class": "hidden-column"})
+                timeline_cols = row.find_all("td", {"class": "table--hiddenColumn"})
 
-            assigned = timeline_cols[0].text
-            due = timeline_cols[1].text
+                if not timeline_cols or len(timeline_cols) == 0:
+                    timeline_cols = row.find_all("td", {"class": "hidden-column"})
 
-            if assigned is None or assigned == "" or 'false' in assigned:
-                assigned = None
-            else:
-                assigned = datetime.strptime(assigned, datefmt)
+                assigned = timeline_cols[0].text
+                due = timeline_cols[1].text
 
-            if due is None or due == "":
-                due = None
-            else:
-                due = datetime.strptime(due, datefmt)
+                if assigned is None or assigned == "" or 'false' in assigned:
+                    assigned = None
+                else:
+                    assigned = datetime.strptime(assigned, datefmt)
 
-            if assign_id:
-                assignments.append( {
-                        "id": assign_id,
-                        "name": name,
-                        "assigned": assigned,
-                        "due": due,
-                    })
-            else:
-                assignments.append( {
-                        "name": name,
-                        "assigned": assigned,
-                        "due": due,
-                    })
+                if due is None or due == "":
+                    due = None
+                else:
+                    due = datetime.strptime(due, datefmt)
+
+                if assign_id:
+                    assignments.append( {
+                            "id": assign_id,
+                            "name": name,
+                            "assigned": assigned,
+                            "due": due,
+                        })
+                else:
+                    assignments.append( {
+                            "name": name,
+                            "assigned": assigned,
+                            "due": due,
+                        })
+        else:
+            # New format
+            datefmt = "%Y-%m-%dT%H:%M"
+            assignments_content = parsed.find("div", attrs={'data-react-class': 'AssignmentsTable'})['data-react-props']
+
+            assignments_content.replace('&quot;', '"')
+
+            # TODO: get assign_id, name, assigned, and due
+            assignments_list = json.loads(assignments_content)['table_data']
+
+            for assignment in assignments_list:
+                if 'id' in assignment:
+                    assign_id = assignment['id'].replace('assignment_','')
+                else:
+                    assign_id = None
+                name = assignment['title']
+
+                if assign_id and 'container_' in assign_id:
+                    print ('Skipping assignment container {}'.format(name))
+                    continue
+
+                if assign_id and 'section_' in assign_id:
+                    print ('Skipping assignment section {}'.format(name))
+                    continue
+
+                if 'submission_window' not in assignment:
+                    print('Skipping deadline-free assignment {}'.format(name))
+                    continue
+
+                assigned = assignment['submission_window']['release_date']
+                due = assignment['submission_window']['due_date']
+                if assigned is None or assigned == "" or 'false' in assigned:
+                    assigned = None
+                    if assignment['due_or_created_at_date']:
+                        assigned = datetime.strptime(assignment['due_or_created_at_date'], datefmt)
+                else:
+                    assigned = datetime.strptime(assigned, datefmt)
+
+                if due is None or due == "":
+                    due = None
+                    if assignment['due_or_created_at_date']:
+                        due = datetime.strptime(assignment['due_or_created_at_date'], datefmt)
+                else:
+                    due = datetime.strptime(due, datefmt)
+
+                if assign_id:
+                    assignments.append( {
+                            "id": assign_id,
+                            "name": name,
+                            "assigned": assigned,
+                            "due": due,
+                        })
+                else:
+                    assignments.append( {
+                            "name": name,
+                            "assigned": assigned,
+                            "due": due,
+                        })
 
         return assignments
 
@@ -328,6 +389,10 @@ class GSCourse:
             # print (row[0])
             data_id = row[0].find("button", class_="rosterCell--editIcon").get("data-id")
 
+            user_id = row[0].find("button", class_="js-rosterName")
+            if user_id:
+                user_id = user_id.get('data-url').split('?')[-1].split('=')[-1]
+
             if len(row) >= 4 and row[2].find("option", selected="selected"):
                 email = row[1].text
                 role = row[2].find("option", selected="selected").text
@@ -343,7 +408,7 @@ class GSCourse:
                     submissions = int(row[4].text)
                     linked = True if "statusIcon-active" in row[5].find("i").get("class") else False
             # TODO Make types reasonable.
-            self.roster[name] = GSPerson(name, data_id, email, role, submissions, linked)
+            self.roster[name] = GSPerson(name, data_id, email, role, submissions, linked, user_id)
         self.state.add(LoadedCapabilities.ROSTER)
 
     def _check_capabilities(self, needed):
