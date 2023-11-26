@@ -18,7 +18,12 @@
 ##
 #####################################################################################################################
 
-import threading
+import os
+import yaml
+import pandas as pd
+
+from gscdash.pycanvas.canvas_status import CanvasStatus
+from gscdash.pyscope.gs_status import GradescopeStatus
 
 def process_canvas_course(canvas_url, canvas_key, canvas_course_id):
     canvas = CanvasStatus(canvas_url, canvas_key, [canvas_course_id], config['canvas']['include'], config['canvas']['active_only'])
@@ -29,12 +34,6 @@ def process_canvas_course(canvas_url, canvas_key, canvas_course_id):
 def process_gs_course(email, pwd, course):
     gs_students, gs_assignments, gs_submissions, gs_extensions = gs.get_course_info([course])
     return (gs_students, gs_assignments, gs_submissions, gs_extensions)
-
-
-from gscdash.pycanvas.canvas_status import CanvasStatus
-from gscdash.pyscope.gs_status import GradescopeStatus
-import yaml
-import pandas as pd
 
 
 if __name__ == "__main__":
@@ -49,6 +48,8 @@ if __name__ == "__main__":
         use_threads = config['gradescope']['use_threads']
 
         print ('*** Reading details from config.yaml ***')
+
+        os.makedirs('./data', exist_ok=True) 
 
         if config['canvas']['enabled']:
             print ('Canvas courses:')
@@ -66,15 +67,15 @@ if __name__ == "__main__":
                 all_submissions.extend(submissions)
                 all_student_summaries.extend(student_summaries)
 
-            canvas_courses.to_csv('canvas_courses.csv',index=False)
+            canvas_courses.to_csv('data/canvas_courses.csv',index=False)
             if len(all_student_summaries):
-                pd.concat(all_student_summaries).to_csv('canvas_student_summaries.csv', index=False)
+                pd.concat(all_student_summaries).to_csv('data/canvas_student_summaries.csv', index=False)
             if len(all_students):
-                pd.concat(all_students).to_csv('canvas_students.csv', index=False)
+                pd.concat(all_students).to_csv('data/canvas_students.csv', index=False)
             if len(all_assignments):
-                pd.concat(all_assignments).to_csv('canvas_assignments.csv', index=False)
+                pd.concat(all_assignments).to_csv('data/canvas_assignments.csv', index=False)
             if len(all_submissions):
-                pd.concat(all_submissions).to_csv('canvas_submissions.csv', index=False)
+                pd.concat(all_submissions).to_csv('data/canvas_submissions.csv', index=False)
 
         if config['gradescope']['enabled']:
             print ('Gradescope semesters')
@@ -100,13 +101,13 @@ if __name__ == "__main__":
                 gs_submissions.extend(submissions)
                 gs_extensions.extend(extensions)
 
-            pd.DataFrame(gs_courses).to_csv('gs_courses.csv',index=False)
+            pd.DataFrame(gs_courses).to_csv('data/gs_courses.csv',index=False)
             if len(gs_students):
-                pd.concat(gs_students).to_csv('gs_students.csv', index=False)
+                pd.concat(gs_students).to_csv('data/gs_students.csv', index=False)
             if len(gs_assignments):
-                pd.concat(gs_assignments).to_csv('gs_assignments.csv', index=False)
+                pd.concat(gs_assignments).to_csv('data/gs_assignments.csv', index=False)
             if len(gs_submissions):
-                pd.concat(gs_submissions).to_csv('gs_submissions.csv', index=False)
+                pd.concat(gs_submissions).to_csv('data/gs_submissions.csv', index=False)
             if len(gs_extensions):
-                pd.concat(gs_extensions).to_csv('gs_extensions.csv', index=False)
+                pd.concat(gs_extensions).to_csv('data/gs_extensions.csv', index=False)
 

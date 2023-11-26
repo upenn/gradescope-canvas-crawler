@@ -6,30 +6,30 @@ from status_tests import now, date_format
 
 @st.cache_data
 def get_courses() -> pd.DataFrame:
-    return pd.read_csv('gs_courses.csv')
+    return pd.read_csv('data/gs_courses.csv')
 
 @st.cache_data
 def get_students() -> pd.DataFrame:
-    students_df = pd.read_csv('gs_students.csv').rename(columns={'name':'student'})
+    students_df = pd.read_csv('data/gs_students.csv').rename(columns={'name':'student'})
     students_df['emails2'] = students_df['emails'].apply(lambda x: json.loads(x.replace('\'','"')) if x else None)
     students_df = students_df.explode('emails2').drop(columns=['emails'])
     return students_df
 
 @st.cache_data
 def get_assignments() -> pd.DataFrame:
-    return pd.read_csv('gs_assignments.csv').rename(columns={'id':'assignment_id'})
+    return pd.read_csv('data/gs_assignments.csv').rename(columns={'id':'assignment_id'})
 
 @st.cache_data
 def get_submissions(do_all = False) -> pd.DataFrame:
     # SID is useless because it is the Penn student ID *but can be null*
     if not do_all:
-        return pd.read_csv('gs_submissions.csv')[['Email','Total Score','Max Points','Status','Submission ID','Submission Time','Lateness (H:M:S)','course_id','Sections','assign_id','First Name','Last Name']]
+        return pd.read_csv('data/gs_submissions.csv')[['Email','Total Score','Max Points','Status','Submission ID','Submission Time','Lateness (H:M:S)','course_id','Sections','assign_id','First Name','Last Name']]
     else:
         return pd.read_csv('gs_submissions.csv').drop(columns=['SID','View Count', 'Submission Count'])
 
 @st.cache_data
 def get_extensions() -> pd.DataFrame:
-    return pd.read_csv('gs_extensions.csv')
+    return pd.read_csv('data/gs_extensions.csv')
 
 @st.cache_data
 def get_submissions_ext(do_all = False) -> pd.DataFrame:
