@@ -406,6 +406,8 @@ class GSCourse:
             roster_table.append(row)
 
         for row in roster_table:
+            # TODO: add Student ID and Role
+
             name = row[0].text.rsplit(" ", 1)[0]
             # print (row[0])
             data_id = row[0].find("button", class_="rosterCell--editIcon").get("data-id")

@@ -49,8 +49,8 @@ class CanvasStatus(CourseWrapper):
                 print (the_course.name)
 
             # Ensure the course is currently being offered (ie active)
-            if (not self.active or (the_course.end_at and \
-            (pd.to_datetime(the_course.start_at, utc=True) <= rightnow and rightnow <= pd.to_datetime(the_course.end_at, utc=True)))):
+            if (True or (not self.active or (the_course.end_at and \
+            (pd.to_datetime(the_course.start_at, utc=True) <= rightnow and rightnow <= pd.to_datetime(the_course.end_at, utc=True))))):
 
                 logging.debug ('{} through {}'.format(the_course.start_at, the_course.end_at))
 

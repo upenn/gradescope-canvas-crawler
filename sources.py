@@ -11,14 +11,30 @@ timezone = datetime.now().astimezone().tzinfo
 
 @st.cache_data
 def get_courses() -> pd.DataFrame:
-    return pd.read_csv('data/gs_courses.csv')
+    full_courses_gs = pd.read_csv('data/gs_courses.csv')
+    full_courses_canvas = pd.read_csv('data/canvas_courses.csv').rename(columns={'id':'canvas_id', 'name': 'canvas_name'})
+    full_courses_canvas = full_courses_canvas[full_courses_canvas['workflow_state'] == 'available'].\
+        drop(columns=['is_public','workflow_state','start_at','end_at','course_code'])
+
+    return full_courses_gs.merge(full_courses_canvas, left_on='lti', right_on='canvas_id', how='outer').\
+        drop(columns=['lti','canvas_name'])
 
 @st.cache_data
 def get_students() -> pd.DataFrame:
     students_df = pd.read_csv('data/gs_students.csv').rename(columns={'name':'student'})
     students_df['emails2'] = students_df['emails'].apply(lambda x: json.loads(x.replace('\'','"')) if x else None)
     students_df = students_df.explode('emails2').drop(columns=['emails'])
-    return students_df
+
+    students_2_df = pd.read_csv('data/canvas_students.csv').rename(columns={'name':'canvas_student','id':'canvas_sid', 'course_id':'canvas_cid'})
+
+    canvas_mappings_df = pd.read_csv('data/gs_courses.csv')[['cid','lti']].rename(columns={'cid':'gs_course_id'})
+
+    total = students_df.merge(canvas_mappings_df, left_on='course_id', right_on='gs_course_id').\
+        merge(students_2_df, left_on=['emails2','lti'], right_on=['email','canvas_cid'], how='outer')
+    
+    st.dataframe(total)
+
+    return total;
 
 @st.cache_data
 def get_assignments() -> pd.DataFrame:
@@ -75,7 +91,7 @@ def get_course_enrollments():
     """
     enrollments = get_students().\
         merge(get_assignments_and_submissions(get_courses(), get_assignments(), get_submissions()), left_on='emails2', right_on='Email').\
-        drop(columns=['course_id','year','course_id','assign_id','emails2','Submission ID','lti'])
+        drop(columns=['year','course_id','assign_id','emails2','Submission ID'])
     
     enrollments_with_exts = enrollments.\
         merge(get_extensions(), left_on=['user_id','assignment_id','cid'], right_on=['user_id','assign_id','course_id'], how='left').\
