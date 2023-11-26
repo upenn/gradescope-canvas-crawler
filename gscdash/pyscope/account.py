@@ -10,11 +10,14 @@ class GSAccount():
         self.instructor_courses = {}
         self.student_courses = {}
 
-    def add_class(self, cid, name, shortname, year, instructor = False):
+    def add_class(self, cid, name, shortname, year, instructor = False) -> GSCourse:
+        new_course = GSCourse(cid, name, shortname, year, self.session)
         if instructor:
-            self.instructor_courses[cid] = GSCourse(cid, name, shortname, year, self.session)
+            self.instructor_courses[cid] = new_course
         else:
-            self.student_courses[cid] = GSCourse(cid, name, shortname, year, self.session)
+            self.student_courses[cid] = new_course
+
+        return new_course
 
     # TODO add default exceptions when doing unsafe things.
     def delete_class(self, cid):

@@ -97,9 +97,10 @@ class GSConnection(CourseApi):
             
             if semesters is None or year in semesters:
                 # print(year)
-                self.account.add_class(
+                new_course = self.account.add_class(
                     cid, name, shortname, year, instructor=False
                 )
+                new_course.get_lti_link()
 
         if self.crawl_student:
             student_courses = parsed_account_resp.find(
@@ -128,7 +129,7 @@ class GSConnection(CourseApi):
                     return False  # Should probably raise an exception.
                 if semesters is None or year in semesters:
                     # print(year)
-                    self.account.add_class(cid, name, shortname, year)
+                    new_course = self.account.add_class(cid, name, shortname, year)
 
         return True
 

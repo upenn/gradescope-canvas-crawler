@@ -97,7 +97,6 @@ class GSCourse:
         # Only instructor has access to this version
         settings_resp = self.session.get("https://www.gradescope.com/courses/" + self.cid + '/edit')
         parsed = BeautifulSoup(settings_resp.text, "html.parser")
-        is_instructor = False
 
         edit_form = None
 
@@ -106,9 +105,13 @@ class GSCourse:
             print ("No auth")
             return
 
-        edit_form = parsed.find("form", id="edit_course_form")
-        self.lti = edit_form.find("span", class_="lmsResourceLink")['data-lms-id']
-        print(edit_form)
+        edit_form = parsed.find("form", id="course-form")
+        if edit_form:
+            lms_resource = edit_form.find("span", class_="lmsResource")
+            if lms_resource:
+                self.lti = lms_resource['data-lms-id']
+
+        return self.lti
 
     def get_assignments(self):
         # Only instructor has access to this version
