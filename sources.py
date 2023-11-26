@@ -2,7 +2,12 @@ import streamlit as st
 import pandas as pd
 import json
 from datetime import datetime
+from dateutil.tz import *
 from status_tests import now, date_format
+
+timezone = datetime.now().astimezone().tzinfo
+# offset = timezone.utcoffset(datetime.now())
+# tzoffset = f"{offset.days * 24 + offset.seconds // 3600:+03d}:{offset.seconds % 3600 // 60:02d}"
 
 @st.cache_data
 def get_courses() -> pd.DataFrame:
@@ -29,7 +34,18 @@ def get_submissions(do_all = False) -> pd.DataFrame:
 
 @st.cache_data
 def get_extensions() -> pd.DataFrame:
-    return pd.read_csv('data/gs_extensions.csv')
+    # duelate = 'Release (' + timezone + ')Due (' + timezone + ')'
+    duelate = 'Release ({})Due ({})'.format(timezone, timezone)
+    release = 'Release ({})'.format(timezone)
+    due = 'Due ({})'.format(timezone)
+    late = 'Late Due ({})'.format(timezone)
+    extensions = pd.read_csv('data/gs_extensions.csv').\
+        drop(columns=['Edit','Section', 'First & Last Name Swap', 'Last, First Name Swap', 'Sections', duelate, release, 'Time Limit'])
+
+    extensions[due] = extensions[due].apply(lambda x: datetime.strptime(x, '%b %d %Y %I:%M %p') if x != '(no change)' and x != 'No late due date' and x != '--' and not pd.isnull(x) else None)
+    extensions[late] = extensions[late].apply(lambda x: datetime.strptime(x, '%b %d %Y %I:%M %p') if x != '(no change)' and x != 'No late due date' and x != '--' and not pd.isnull(x) else None)
+    
+    return extensions
 
 @st.cache_data
 def get_submissions_ext(do_all = False) -> pd.DataFrame:
@@ -59,12 +75,16 @@ def get_course_enrollments():
     """
     enrollments = get_students().\
         merge(get_assignments_and_submissions(get_courses(), get_assignments(), get_submissions()), left_on='emails2', right_on='Email').\
-        drop(columns=['course_id','year','course_id','assign_id','emails2','Submission ID'])
+        drop(columns=['course_id','year','course_id','assign_id','emails2','Submission ID','lti'])
+    
+    enrollments_with_exts = enrollments.\
+        merge(get_extensions(), left_on=['user_id','assignment_id','cid'], right_on=['user_id','assign_id','course_id'], how='left').\
+        drop(columns=['course_id', 'course_id'])
 
-    enrollments = enrollments.sort_values(['due','assignment','Status','Total Score','Last Name','First Name'],
+    enrollments_with_exts = enrollments_with_exts.sort_values(['due','assignment','Status','Total Score','Last Name','First Name'],
                                         ascending=[True,True,True,True,True,True])
     
-    return enrollments
+    return enrollments_with_exts
 
 
 def get_course_student_status_summary(
