@@ -53,12 +53,18 @@ class GradescopeStatus(CourseWrapper):
 
 
     def get_semesters(self, courses: List[GSCourse]) -> list:
+        """
+        Return a list of all semesters for which we have collected courses
+        """
         semesters = set()
         for course in courses:
             semesters.add(course.year)
         return list(semesters)
 
     def get_course_events(self, course: GSCourse, all_events: list, event_handler: Callable[[GSCourse, dict], None]):
+        """
+        All course assignments and deadlines
+        """
         course_name = course.shortname
         print(f"\nStarted Processing Course: {course_name}")
 
@@ -121,6 +127,9 @@ class GradescopeStatus(CourseWrapper):
 
         
     def get_course_info(self, gs_courses: list) -> Tuple[Any]:
+        """
+        Return students, assignments, submissions, extensions
+        """
         if not gs_courses:
             gs_courses = self.gs.get_course_list()#_df()
         all_assignments = []

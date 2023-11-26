@@ -6,6 +6,7 @@ from typing import List, Dict, Any
 import logging
 import pandas as pd
 import lxml
+import json
 from gscdash.pyscope.account import GSAccount
 from gscdash.pyscope.course import GSCourse
 
@@ -202,13 +203,27 @@ class GSConnection(CourseApi):
 
                     # print (tab_list)
 
-                    extensions.append(tab_list[0])
+                    extensions.append(tab_list[0].copy())
                     extensions[-1]['course_id'] = course.cid
                     extensions[-1]['assign_id'] = assignment['id']
 
-                    ## TODO: find the first <table>
-                    ## Then go into <tbody> and for each <tr> find the <td> with a <div data-react-class="EditExtension">.  Find the data-react-props.
-                    ## Look for {&quot;user_id&quot;:<<id>>
+                    parsed_ext_resp = BeautifulSoup(ext_table, 'html.parser')
+                    tbody_element = parsed_ext_resp.find('tbody')
+
+                    tr_elements = tbody_element.find_all('tr')
+                    new_list = []
+                    for row in tr_elements:
+                        td_elements = row.find_all('td')
+                        user_name = td_elements[0].text
+
+                        div = row.find('div', attrs = {'data-react-class': 'EditExtension'})
+                        if div:
+                            props = div['data-react-props'].replace('&quot;', '"')
+                            props_json = json.loads(props)
+                            new_list.append({'user_id': int(props_json['userId'])})#, 'user_name': user_name})
+                            print ('Extension for user {}: {}'.format(user_name, props_json['userId']))
+
+                    extensions[-1] = extensions[-1].merge(pd.DataFrame(new_list), left_index=True, right_index=True)
                 except ValueError:
                     pass
         return extensions
