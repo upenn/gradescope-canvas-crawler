@@ -45,19 +45,23 @@ class Assignment:
     weight: float
 
 class Person:
+    data_id: str
     student_id: str
     name: str
     emails: List[str]
     user_id: str
+    role: str
 
     def __str__(self, key):
-        return '{}, {}, {}, {}'.format(self.student_id, self.name, self.emails, self.user_id)
+        return '{}, {}, {}, {}, {}, {}'.format(self.data_id, self.student_id, self.name, self.emails, self.user_id, self.role)
     
     def __iter__(self):
+        yield self.data_id
         yield self.student_id
         yield self.name
         yield self.emails
         yield self.user_id
+        yield self.role
 
 class CourseApi:
     @abstractmethod

@@ -56,6 +56,12 @@ def display_hw_status(course_name:str, assign:pd.DataFrame, due_date: datetime, 
                         'assigned':None,'due': None,
                         'shortname':None,
                         'Sections':None,
+                        'gs_course_id': None,
+                        'user_id': None,
+                        'student_id': None,
+                        'canvas_sid': None,
+                        'canvas_id': None,
+                        'sis_course_id': None,
                         'Total Score':st.column_config.NumberColumn(step=1,format="$%d"),
                         'Max Points':st.column_config.NumberColumn(step=1,format="$%d"),
                         # 'Submission Time':st.column_config.DatetimeColumn(format="D MM YY, h:mm a")
@@ -211,6 +217,12 @@ def display_hw_totals(course = None) -> None:
                     'assigned':None,'due': None,
                     'shortname':None,
                     'Sections': None,
+                    'gs_course_id': None,
+                    'user_id': None,
+                    'student_id': None,
+                    'canvas_sid': None,
+                    'canvas_id': None,
+                    'sis_course_id': None,
                     'Total Score':st.column_config.NumberColumn(step=1,format="$%d")
                     # 'Submission Time':st.column_config.DatetimeColumn(format="D MM YY, h:mm a")
                     })

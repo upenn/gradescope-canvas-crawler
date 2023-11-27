@@ -23,16 +23,20 @@ def get_courses() -> pd.DataFrame:
 def get_students() -> pd.DataFrame:
     students_df = pd.read_csv('data/gs_students.csv').rename(columns={'name':'student'})
     students_df['emails2'] = students_df['emails'].apply(lambda x: json.loads(x.replace('\'','"')) if x else None)
-    students_df = students_df.explode('emails2').drop(columns=['emails'])
+    students_df = students_df[students_df['role'] == 'GSRole.STUDENT']
+    students_df = students_df.explode('emails2').drop(columns=['emails','role'])
+
+    # st.dataframe(students_df)
 
     students_2_df = pd.read_csv('data/canvas_students.csv').rename(columns={'name':'canvas_student','id':'canvas_sid', 'course_id':'canvas_cid'})
 
     canvas_mappings_df = pd.read_csv('data/gs_courses.csv')[['cid','lti']].rename(columns={'cid':'gs_course_id'})
 
     total = students_df.merge(canvas_mappings_df, left_on='course_id', right_on='gs_course_id').\
-        merge(students_2_df, left_on=['emails2','lti'], right_on=['email','canvas_cid'], how='outer')
+        merge(students_2_df, left_on=['student_id','lti'], right_on=['sis_user_id','canvas_cid'], how='outer').\
+        drop(columns=['sortable_name','sis_user_id', 'created_at', 'canvas_cid','email','canvas_student','login_id', 'lti'])
     
-    st.dataframe(total)
+    # st.dataframe(total)
 
     return total;
 

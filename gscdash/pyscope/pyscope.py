@@ -168,7 +168,7 @@ class GSConnection(CourseApi):
     def get_students_df(self, course: GSCourse) -> pd.DataFrame:
         ret = pd.DataFrame(self.get_students(course))
         if len(ret):
-            ret.columns = ['sid', 'name', 'emails', 'user_id']
+            ret.columns = ['sid', 'student_id', 'name', 'emails', 'user_id', 'role']
         return ret
 
     def get_assignment_submissions_df(self, course: GSCourse) -> pd.DataFrame:

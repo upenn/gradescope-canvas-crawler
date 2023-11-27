@@ -188,7 +188,7 @@ class GSCourse:
 
             assignments_content.replace('&quot;', '"')
 
-            # TODO: get assign_id, name, assigned, and due
+            # get assign_id, name, assigned, and due
             assignments_list = json.loads(assignments_content)['table_data']
 
             for assignment in assignments_list:
@@ -411,6 +411,7 @@ class GSCourse:
             name = row[0].text.rsplit(" ", 1)[0]
             # print (row[0])
             data_id = row[0].find("button", class_="rosterCell--editIcon").get("data-id")
+            student_id = json.loads(row[0].find("button", class_="rosterCell--editIcon").get("data-cm"))['sid']
 
             user_id = row[0].find("button", class_="js-rosterName")
             if user_id:
@@ -431,7 +432,7 @@ class GSCourse:
                     submissions = int(row[4].text)
                     linked = True if "statusIcon-active" in row[5].find("i").get("class") else False
             # TODO Make types reasonable.
-            self.roster[name] = GSPerson(name, data_id, email, role, submissions, linked, user_id)
+            self.roster[name] = GSPerson(name, data_id, email, role, submissions, linked, user_id, student_id)
         self.state.add(LoadedCapabilities.ROSTER)
 
     def _check_capabilities(self, needed):

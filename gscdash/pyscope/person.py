@@ -36,13 +36,14 @@ class GSRole(Enum):
     
     
 class GSPerson(Person):
-    def __init__(self, name, data_id, email, role, submissions, linked, user_id):
+    def __init__(self, name, data_id, email, role, submissions, linked, user_id, student_id):
         self.name = name
         self.data_id = data_id
-        self.student_id = data_id
+        self.student_id = student_id
         self.email = email
         self.emails = [email]
         self.role = GSRole.from_str(role)
         self.linked = linked
         self.submissions = submissions
         self.user_id = user_id
+
