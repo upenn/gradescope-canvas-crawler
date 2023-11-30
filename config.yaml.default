@@ -4,6 +4,7 @@ gradescope:
   use_threads: false
   semesters:
   - Fall 2023
+  enabled: true
 
 canvas:
   api_key: 123456
