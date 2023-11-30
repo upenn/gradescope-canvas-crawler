@@ -9,36 +9,54 @@ timezone = datetime.now().astimezone().tzinfo
 # offset = timezone.utcoffset(datetime.now())
 # tzoffset = f"{offset.days * 24 + offset.seconds // 3600:+03d}:{offset.seconds % 3600 // 60:02d}"
 
+include_gradescope_data = True
+include_canvas_data = True
+
 @st.cache_data
 def get_courses() -> pd.DataFrame:
-    full_courses_gs = pd.read_csv('data/gs_courses.csv')
+    if include_gradescope_data:
+        full_courses_gs = pd.read_csv('data/gs_courses.csv')
+
+    if not include_canvas_data:
+        return full_courses_gs
+    
     full_courses_canvas = pd.read_csv('data/canvas_courses.csv').rename(columns={'id':'canvas_id', 'name': 'canvas_name'})
     full_courses_canvas = full_courses_canvas[full_courses_canvas['workflow_state'] == 'available'].\
         drop(columns=['is_public','workflow_state','start_at','end_at','course_code'])
 
-    return full_courses_gs.merge(full_courses_canvas, left_on='lti', right_on='canvas_id', how='outer').\
-        drop(columns=['lti','canvas_name'])
+    if include_gradescope_data:
+        return full_courses_gs.merge(full_courses_canvas, left_on='lti', right_on='canvas_id', how='outer').\
+            drop(columns=['lti','canvas_name'])
+    else:
+        return full_courses_canvas
 
 @st.cache_data
 def get_students() -> pd.DataFrame:
-    students_df = pd.read_csv('data/gs_students.csv').rename(columns={'name':'student'})
-    students_df['emails2'] = students_df['emails'].apply(lambda x: json.loads(x.replace('\'','"')) if x else None)
-    students_df = students_df[students_df['role'] == 'GSRole.STUDENT']
-    students_df = students_df.explode('emails2').drop(columns=['emails','role'])
+    if include_gradescope_data:
+        students_df = pd.read_csv('data/gs_students.csv').rename(columns={'name':'student'})
+        students_df['emails2'] = students_df['emails'].apply(lambda x: json.loads(x.replace('\'','"')) if x else None)
+        students_df = students_df[students_df['role'] == 'GSRole.STUDENT']
+        students_df = students_df.explode('emails2').drop(columns=['emails','role'])
+        canvas_mappings_df = pd.read_csv('data/gs_courses.csv')[['cid','lti']].rename(columns={'cid':'gs_course_id'})
+
 
     # st.dataframe(students_df)
 
-    students_2_df = pd.read_csv('data/canvas_students.csv').rename(columns={'name':'canvas_student','id':'canvas_sid', 'course_id':'canvas_cid'})
+    if include_canvas_data:
+        students_2_df = pd.read_csv('data/canvas_students.csv').rename(columns={'name':'canvas_student','id':'canvas_sid', 'course_id':'canvas_cid'})
 
-    canvas_mappings_df = pd.read_csv('data/gs_courses.csv')[['cid','lti']].rename(columns={'cid':'gs_course_id'})
-
-    total = students_df.merge(canvas_mappings_df, left_on='course_id', right_on='gs_course_id').\
-        merge(students_2_df, left_on=['student_id','lti'], right_on=['sis_user_id','canvas_cid'], how='outer').\
-        drop(columns=['sortable_name','sis_user_id', 'created_at', 'canvas_cid','email','canvas_student','login_id', 'lti'])
+    if include_canvas_data and include_gradescope_data:
+        total = students_df.merge(canvas_mappings_df, left_on='course_id', right_on='gs_course_id').\
+            merge(students_2_df, left_on=['student_id','lti'], right_on=['sis_user_id','canvas_cid'], how='outer').\
+            drop(columns=['sortable_name','sis_user_id', 'created_at', 'canvas_cid','email','canvas_student','login_id', 'lti'])
+    elif include_gradescope_data:
+        total = students_df
+    else:
+        total = students_2_df
     
     # st.dataframe(total)
 
-    return total;
+    return total
 
 @st.cache_data
 def get_assignments() -> pd.DataFrame:

@@ -1,12 +1,24 @@
 import streamlit as st
 from streamlit import column_config
 from sources import get_assignments, get_course_names, get_courses, get_students, get_submissions, get_course_enrollments, get_course_student_status_summary
+from sources import include_canvas_data, include_gradescope_data
 
 from components import display_course, display_birds_eye, is_overdue
 from status_tests import is_overdue, is_near_due, is_submitted, now, date_format
 
+import yaml
 import datetime
 import pandas as pd
+
+with open('config.yaml') as config_file:
+    config = yaml.safe_load(config_file)
+
+    if 'include' in config['canvas']:
+        include_canvas_data = config['canvas']['include']
+
+    if 'include' in config['gradescope']:
+        include_gradescope_data = config['gradescope']['include']
+
 
 st.markdown("# Penn CIS Gradescope-Canvas Dashboard")
 # Inject custom CSS to set the width of the sidebar
