@@ -52,7 +52,7 @@ python collect_events.py
 To see the dashboard, run:
 
 ```
-streamlit dashboard.py
+streamlit run dashboard.py
 ```
 
 
