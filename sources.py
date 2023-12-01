@@ -60,7 +60,7 @@ def get_extensions() -> pd.DataFrame:
     due = 'Due ({})'.format(timezone)
     late = 'Late Due ({})'.format(timezone)
     extensions = pd.read_csv('data/gs_extensions.csv').\
-        drop(columns=['Edit','Section', 'First & Last Name Swap', 'Last, First Name Swap', 'Sections', duelate, release, 'Time Limit'])
+        drop(columns=['Edit','Section', 'First & Last Name Swap', 'Last, First Name Swap', 'Sections', duelate, release, 'Time Limit'], errors='ignore')
 
     extensions[due] = extensions[due].apply(lambda x: datetime.strptime(x, '%b %d %Y %I:%M %p') if x != '(no change)' and x != 'No late due date' and x != '--' and not pd.isnull(x) else None)
     extensions[late] = extensions[late].apply(lambda x: datetime.strptime(x, '%b %d %Y %I:%M %p') if x != '(no change)' and x != 'No late due date' and x != '--' and not pd.isnull(x) else None)
@@ -87,7 +87,7 @@ def get_course_names():
     """
     Retrieve the (short) name of every course
     """
-    return get_courses().drop_duplicates().rename(columns={'shortname':'Course'}).set_index('cid')['Course']
+    return get_courses().drop_duplicates().dropna().rename(columns={'shortname':'Course'}).set_index('cid')['Course']
 
 def get_course_enrollments():
     """
