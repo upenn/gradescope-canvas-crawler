@@ -37,4 +37,5 @@ canvasapi>=3.1.0
 pandas>=1.4.3
 streamlit
 streamlit-aggrid
+watchdog
 
