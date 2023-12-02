@@ -13,14 +13,24 @@ import pandas as pd
 with open('config.yaml') as config_file:
     config = yaml.safe_load(config_file)
 
-    if 'include' in config['canvas']:
-        include_canvas_data = config['canvas']['include']
+    if 'show' in config['canvas']:
+        include_canvas_data = config['canvas']['show']
+        print ('Canvas data: {}'.format(include_canvas_data))
 
-    if 'include' in config['gradescope']:
-        include_gradescope_data = config['gradescope']['include']
+    if 'show' in config['gradescope']:
+        include_gradescope_data = config['gradescope']['show']
+        print ('Gradescope data: {}'.format(include_gradescope_data))
 
 
-st.markdown("# Penn CIS Gradescope-Canvas Dashboard")
+name = ''
+if include_gradescope_data:
+    name = 'Gradescope'
+if include_canvas_data:
+    if len(name) > 0:
+        name += '-'
+    name += 'Canvas'
+
+st.markdown("# Penn CIS {} Dashboard".format(name))
 # Inject custom CSS to set the width of the sidebar
 st.markdown(
     """

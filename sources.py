@@ -22,7 +22,7 @@ def get_courses() -> pd.DataFrame:
     
     full_courses_canvas = pd.read_csv('data/canvas_courses.csv').rename(columns={'id':'canvas_id', 'name': 'canvas_name'})
     full_courses_canvas = full_courses_canvas[full_courses_canvas['workflow_state'] == 'available'].\
-        drop(columns=['is_public','workflow_state','start_at','end_at','course_code'])
+        drop(columns=['is_public','workflow_state','start_at','end_at'])
 
     if include_gradescope_data:
         return full_courses_gs.merge(full_courses_canvas, left_on='lti', right_on='canvas_id', how='outer').\
@@ -60,7 +60,12 @@ def get_students() -> pd.DataFrame:
 
 @st.cache_data
 def get_assignments() -> pd.DataFrame:
-    return pd.read_csv('data/gs_assignments.csv').rename(columns={'id':'assignment_id'})
+    # TODO: how do we merge homeworks??
+
+    if include_gradescope_data:
+        return pd.read_csv('data/gs_assignments.csv').rename(columns={'id':'assignment_id'})
+    elif include_canvas_data:
+        return pd.read_csv('data/canvas_assignments.csv').rename(columns={'id':'assignment_id'})
 
 @st.cache_data
 def get_submissions(do_all = False) -> pd.DataFrame:
@@ -72,24 +77,31 @@ def get_submissions(do_all = False) -> pd.DataFrame:
 
 @st.cache_data
 def get_extensions() -> pd.DataFrame:
-    # duelate = 'Release (' + timezone + ')Due (' + timezone + ')'
-    duelate = 'Release ({})Due ({})'.format(timezone, timezone)
-    release = 'Release ({})'.format(timezone)
-    due = 'Due ({})'.format(timezone)
-    late = 'Late Due ({})'.format(timezone)
-    extensions = pd.read_csv('data/gs_extensions.csv').\
-        drop(columns=['Edit','Section', 'First & Last Name Swap', 'Last, First Name Swap', 'Sections', duelate, release, 'Time Limit'])
+    # TODO: how do we merge homework extensions??
+    if include_gradescope_data:
+        # duelate = 'Release (' + timezone + ')Due (' + timezone + ')'
+        duelate = 'Release ({})Due ({})'.format(timezone, timezone)
+        release = 'Release ({})'.format(timezone)
+        due = 'Due ({})'.format(timezone)
+        late = 'Late Due ({})'.format(timezone)
+        extensions = pd.read_csv('data/gs_extensions.csv').\
+            drop(columns=['Edit','Section', 'First & Last Name Swap', 'Last, First Name Swap', 'Sections', duelate, release, 'Time Limit'])
 
-    extensions[due] = extensions[due].apply(lambda x: datetime.strptime(x, '%b %d %Y %I:%M %p') if x != '(no change)' and x != 'No late due date' and x != '--' and not pd.isnull(x) else None)
-    extensions[late] = extensions[late].apply(lambda x: datetime.strptime(x, '%b %d %Y %I:%M %p') if x != '(no change)' and x != 'No late due date' and x != '--' and not pd.isnull(x) else None)
-    
-    return extensions
+        extensions[due] = extensions[due].apply(lambda x: datetime.strptime(x, '%b %d %Y %I:%M %p') if x != '(no change)' and x != 'No late due date' and x != '--' and not pd.isnull(x) else None)
+        extensions[late] = extensions[late].apply(lambda x: datetime.strptime(x, '%b %d %Y %I:%M %p') if x != '(no change)' and x != 'No late due date' and x != '--' and not pd.isnull(x) else None)
+        
+        return extensions
+    elif include_canvas_data:
+        return pd.read_csv('data/canvas_student_summaries.csv').rename(columns={'id':'extension_id', 'user_id':'SID', 'assignment_id':'assign_id', 'course_id':'course_id', 'extra_attempts':'Extra Attempts', 'extra_time':'Extra Time', 'extra_credit':'Extra Credit', 'late_due_at':'Late Due', 'extended_due_at':'Extended Due', 'created_at':'Created At', 'updated_at':'Updated At', 'workflow_state':'Workflow State', 'grader_id':'Grader ID', 'grader_notes':'Grader Notes', 'grader_visible_comment':'Grader Visible Comment', 'grader_anonymous_id':'Grader Anonymous ID', 'score':'Score', 'late':'Late', 'missing':'Missing', 'seconds_late':'Seconds Late', 'entered_score':'Entered Score', 'entered_grade':'Entered Grade', 'entered_at':'Entered At', 'excused':'Excused', 'posted_at':'Posted At', 'assignment_visible':'Assignment Visible', 'excuse':'Excuse', 'late_policy_status':'Late Policy Status', 'points_deducted':'Points Deducted', 'grading_period_id':'Grading Period ID', 'late_policy_deductible':'Late Policy Deductible', 'seconds_late_deduction':'Seconds Late Deduction', 'grading_period_title':'Grading Period Title', 'late_policy_status':'Late Policy Status', 'missing_submission_type':'Missing Submission Type', 'late_policy_deductible':'Late Policy Deductible', 'seconds_late_deduction':'Seconds Late Deduction', 'grading_period_title':'Grading Period Title', 'missing_submission_type':'Missing Submission Type', 'late_policy_status':'Late Policy Status', 'missing_submission_type':'Missing Submission Type', 'late_policy_status':'Late Policy Status', 'missing_submission_type':'Missing Submission Type', 'late_policy_status':'Late Policy Status', 'missing_submission_type':'Missing Submission Type', 'late_policy_status':'Late Policy Status', 'missing_submission_type':'Missing Submission Type', 'late_policy_status':'Late Policy Status', 'missing_submission_type':'Missing Submission Type', 'late_policy_status':'Late Policy Status', 'missing_submission_type':'Missing Submission Type', 'late_policy_status':'Late Policy Status', 'missing_submission_type':'Missing Submission Type'})
 
-@st.cache_data
-def get_submissions_ext(do_all = False) -> pd.DataFrame:
-    # SID is useless because it is the Penn student ID *but can be null*
-    sub = get_submissions(do_all).merge(get_extensions(),left_on=['course_id','assign_id'], right_on=['course_id', 'assign_id'], how='left')
-    return sub
+# @st.cache_data
+# def get_submissions_ext(do_all = False) -> pd.DataFrame:
+#     if include_gradescope_data:
+#         # SID is useless because it is the Penn student ID *but can be null*
+#         sub = get_submissions(do_all).merge(get_extensions(),left_on=['course_id','assign_id'], right_on=['course_id', 'assign_id'], how='left')
+#         return sub
+#     elif include_canvas_data:
+#         return pd.read_csv('data/canvas_submissions.csv').rename(columns={'id':'Submission ID', 'user_id':'SID', 'submitted_at':'Submission Time'})
 
 def get_assignments_and_submissions(courses_df: pd.DataFrame, assignments_df: pd.DataFrame, submissions_df: pd.DataFrame) -> pd.DataFrame:
     '''

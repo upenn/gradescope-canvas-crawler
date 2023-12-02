@@ -24,6 +24,8 @@ Optionally you'll want to restrict the courses to a subset of the available ones
 * `canvas` / `course_ids`: a list of specific Canvas course IDs to crawl, rather than all that are currently active.  Each should be on a separate line indented with a leading dash
 * `gradescope` / `semesters`: a list of the Gradescope "years" / semesters to crawl
 
+Depending on whether you use Gradescope, Canvas, or both for your course, you can also enable or disable Gradescope or Canvas crawling (`enabled` key in each section of the YAML file) or display (`show` key in each section).
+
 Then set up and run the environment:
 
 ```bash
@@ -34,7 +36,7 @@ pip install -r requirements.txt # Install dependencies
 python collect_events.py # Run the script
 ```
 
-After the script runs, there should be a series of files in the current directory:
+After the script runs, there should be a series of files in the `data` directory:
 * `gs_courses.csv` / `canvas_courses.csv`: list of courses to which we have access
 * `gs_assignments.csv` / `canvas_assignments.csv`: list of student assignments (quizzes, exams, HWs)
 * `gs_students.csv` / `canvas_students.csv`: list of enrolled students by course_id

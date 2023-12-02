@@ -2,6 +2,7 @@ gradescope:
   gs_login: 'a@b.com'
   gs_pwd: 'letmein123!'
   use_threads: false
+  show: true
   semesters:
   - Fall 2023
 
@@ -11,6 +12,7 @@ canvas:
   course_ids:
   - 123
   - 456
+  show: true
   enabled: true
   active_only: false
   include:
