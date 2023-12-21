@@ -7,6 +7,7 @@ import pandas as pd
 from datetime import datetime, timezone, timedelta
 
 from sources import get_courses, get_assignments, get_course_enrollments, get_submissions
+from views import get_scores_in_rubric
 
 from status_tests import is_overdue, is_near_due, is_submitted, now, date_format, is_below_mean, is_far_below_mean
 
@@ -227,3 +228,4 @@ def display_hw_totals(course = None) -> None:
                     # 'Submission Time':st.column_config.DatetimeColumn(format="D MM YY, h:mm a")
                     })
 
+    get_scores_in_rubric(course)

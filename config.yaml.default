@@ -21,3 +21,29 @@ canvas:
   - assignments
   - summaries
   - submissions
+
+rubric:
+  1741973:
+    exams:
+      substring: Midterm
+      points: 15
+      source: gradescope
+    homeworks:
+      substring: Homework
+      points: 40
+      source: gradescope
+    quizzes:
+      substring: Quiz
+      points: 2
+      source: canvas
+    proposal:
+      substring: Project Proposal
+      points: 2
+      source: gradescope
+    project:
+      substring: Final Project
+      points: 28
+      source: gradescope
+    ec:
+      substring: Extra Credit
+      points: 1

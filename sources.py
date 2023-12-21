@@ -113,6 +113,7 @@ def get_assignments_and_submissions(courses_df: pd.DataFrame, assignments_df: pd
         merge(submissions_df, left_on=['assignment_id','crs'], right_on=['assign_id','course_id']).\
         merge(courses_df,left_on='course_id', right_on='cid').drop(columns=['crs','course_id'])
 
+
 def get_course_names():
     """
     Retrieve the (short) name of every course

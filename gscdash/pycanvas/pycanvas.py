@@ -56,7 +56,6 @@ class CanvasConnection(CourseApi):
         for course in course_list:
             self.course_objs.append(course)
             try:
-<<<<<<< HEAD
                 self.courses.append({
                     'id': course.id,
                     'name': course.name,
@@ -69,24 +68,6 @@ class CanvasConnection(CourseApi):
                     # 'hide_final_grades': course.hide_final_grades,
                     'is_public': course.is_public,
                 })
-=======
-                # https://canvas.upenn.edu/courses/1600409 - "Ed Discussion Pilot Resource Site"
-                # doesn't have any course attributes - just ignore
-                
-                if course.id != 1600409:                    
-                    self.courses.append({
-                        'id': course.id,
-                        'name': course.name,
-                        'start_at': course.start_at,
-                        'end_at': course.end_at,
-                        'workflow_state': course.workflow_state,
-                        'course_code': course.course_code,
-                        'sis_course_id': course.sis_course_id,
-                        # 'integration_id': course.integration_id,
-                        # 'hide_final_grades': course.hide_final_grades,
-                        'is_public': course.is_public,
-                    })
->>>>>>> master
             except AttributeError:
                 self.courses.append({
                     'id': course.id,
