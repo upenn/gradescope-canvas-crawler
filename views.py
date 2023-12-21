@@ -28,9 +28,16 @@ def get_scores_in_rubric(course = None) -> pd.DataFrame:
                         left_on=['course_id','assign_id'], \
                         right_on=['course_id','assignment_id']).\
                             merge(the_course.drop(columns=['name','year']).rename(columns={'shortname':'course'}), \
-                                left_on='course_id', right_on='cid')\
-                        [['assignment', 'First Name', 'Last Name', 'Total Score', "Max Points", "Status", 'Email']]
+                                left_on='course_id', right_on='cid')
+                
+                # st.dataframe(scores)
 
-                assigns = scores[scores['assignment'].apply(lambda x: config['rubric'][course_id][group]['substring'] in x)]
+                assigns = scores[scores['assignment'].apply(lambda x: config['rubric'][course_id][group]['substring'] in x)]\
+                        .groupby(by=['First Name', 'Last Name', 'Email']).\
+                        sum().reset_index()\
+                        [['First Name', 'Last Name', 'Total Score', "Max Points", 'Email']]
 
                 st.dataframe(assigns)
+
+                # TODO: in each iteration, rename "Max Points" to the group, and join with the set of students
+                # based on Email

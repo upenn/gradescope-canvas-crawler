@@ -24,8 +24,12 @@ canvas:
 
 rubric:
   1741973:
-    exams:
-      substring: Midterm
+    midterm1:
+      substring: Midterm 1
+      points: 15
+      source: gradescope
+    midterm2:
+      substring: Midterm 2
       points: 15
       source: gradescope
     homeworks:
