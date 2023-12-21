@@ -117,7 +117,7 @@ def get_course_names():
     """
     Retrieve the (short) name of every course
     """
-    return get_courses().drop_duplicates().rename(columns={'shortname':'Course'}).set_index('cid')['Course']
+    return get_courses().drop_duplicates().dropna().rename(columns={'shortname':'Course'}).set_index('cid')['Course']
 
 def get_course_enrollments():
     """
