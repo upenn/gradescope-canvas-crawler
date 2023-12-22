@@ -50,7 +50,8 @@ class CanvasConnection(CourseApi):
     
     def get_course_list_full(self) -> pd.DataFrame:
         course_list = []
-        CanvasConnection._get_paginated(course_list, self.canvas.get_courses(per_page=100))
+        # CanvasConnection._get_paginated(course_list, 
+        course_list = self.canvas.get_courses(per_page=100)
         self.courses = []
         self.course_objs = []        
         for course in course_list:
@@ -94,7 +95,8 @@ class CanvasConnection(CourseApi):
         quizzes = []
         try:
             quiz_list = []
-            CanvasConnection._get_paginated(quiz_list, course.get_quizzes(per_page=100))
+            #CanvasConnection._get_paginated(quiz_list, 
+            quiz_list = course.get_quizzes(per_page=100)
             for quiz in quiz_list:
                 quizzes.append({'id':quiz.id,'title':quiz.title,'published':quiz.published,\
                     'unlock_at': quiz.unlock_at, 'due_at': quiz.due_at, 'lock_at': quiz.lock_at, 'published': quiz.published})
@@ -196,7 +198,8 @@ class CanvasConnection(CourseApi):
         """
         assignments = []
         # ret = []
-        CanvasConnection._get_paginated(assignments, course.get_assignments(per_page=100))
+        # CanvasConnection._get_paginated(assignments, 
+        assignments = course.get_assignments(per_page=100)
         # for assignment in assignments:
         #     print (vars(assignment).keys())
         #     ret.append(vars(assignment))
@@ -225,7 +228,8 @@ class CanvasConnection(CourseApi):
         try:
             the_list = []
 #            summaries = []
-            CanvasConnection._get_paginated(the_list, course.get_course_level_student_summary_data(per_page=100))
+            # CanvasConnection._get_paginated(the_list, 
+            the_list = course.get_course_level_student_summary_data(per_page=100)
             summaries = [{'id': item.id,
                     'page_views': item.page_views,
                     'max_page_views': item.max_page_views,
@@ -254,7 +258,8 @@ class CanvasConnection(CourseApi):
         students = []
         ret= []
         try:
-            CanvasConnection._get_paginated(students, course.get_users(enrollment_type=['student'], per_page=100))
+            # CanvasConnection._get_paginated(students, 
+            students = course.get_users(enrollment_type=['student'], per_page=100)
             ret = [{'id': student.id,
                     'name': student.name,
                     'sortable_name': student.sortable_name,
@@ -280,12 +285,13 @@ class CanvasConnection(CourseApi):
         """
         ret = []
         assignments=[]
-        CanvasConnection._get_paginated(assignments, course.get_assignments(per_page=100))
+        # CanvasConnection._get_paginated(assignments, 
+        assignments = course.get_assignments(per_page=100)
         try:
-            print('%d assignments'%len(assignments))
             for assignment in assignments:
                 submissions = []
-                CanvasConnection._get_paginated(submissions, assignment.get_submissions(per_page=100))
+                # CanvasConnection._get_paginated(submissions, assignment.get_submissions(per_page=100))
+                submissions = assignment.get_submissions(per_page=100)
             #     for submission in submissions:
             #         ret.append(vars(submission))
             #         print(vars(submission).keys())
@@ -308,7 +314,8 @@ class CanvasConnection(CourseApi):
                         'entered_score': sub.entered_score,
                         'course_id': sub.course_id,
                         } for sub in submissions])
-                print('%d submissions for assignment %d'%(len(submissions),assignment.id))
+                print('%d submissions after adding assignment %d'%(len(ret),assignment.id))
+            # print('%d assignment submissions'%len(assignments))
         except ResourceDoesNotExist:
             pass
         except Forbidden:

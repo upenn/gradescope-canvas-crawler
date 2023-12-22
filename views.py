@@ -10,10 +10,13 @@ with open('config.yaml') as config_file:
 def cap_points(row, rubric_items):
     actual_score = row['Total Score']
     max_score = row['Max Points']
+
     if actual_score > max_score and 'max_extra_credit' in rubric_items \
         and actual_score > max_score + rubric_items['max_extra_credit']:
+        print(max_score)
         return max_score + rubric_items['max_extra_credit']
     else:
+        print(actual_score)
         return actual_score
 
 def adjust_max(row, rubric_items):
@@ -55,10 +58,11 @@ def get_scores_in_rubric(course = None) -> pd.DataFrame:
                         sum().reset_index()\
                         [['First Name', 'Last Name', 'Total Score', "Max Points", 'Email']]
                 
-                assigns['Max Points'] = assigns['Max Points'].apply(lambda x: adjust_max(x, config['rubric'][course_id][group]))
+                if len(assigns):
+                    assigns['Max Points'] = assigns['Max Points'].apply(lambda x: adjust_max(x, config['rubric'][course_id][group]))
 
-                # Cap the total points based on max + ec max
-                assigns['Total Points'] = assigns.apply(lambda x: cap_points(x, config['rubric'][course_id][group]), axis=1)
+                    # Cap the total points based on max + ec max
+                    assigns['Total Score'] = assigns.apply(lambda x: cap_points(x, config['rubric'][course_id][group]), axis=1)
 
                 # st.dataframe(students)
                 students = students.merge(assigns[['Email', 'Total Score', 'Max Points']].rename(columns={'Total Score': group, 'Max Points': group + '_max'}), left_on='emails2', right_on='Email', how='left')\

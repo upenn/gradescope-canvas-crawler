@@ -61,3 +61,5 @@ Allow for `config.yaml` to specify a set of *summary reports* and *detailed repo
 an email button for members of each color?
 
 Support outer union.  Allow outer union of different HW/module scores into one wide table (but also summary scores).
+
+Track `last_active` (submission date?), num_unsubmitted, num_late.
