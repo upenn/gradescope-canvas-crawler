@@ -9,7 +9,7 @@ from datetime import datetime, timezone, timedelta
 from sources import get_courses, get_assignments, get_course_enrollments, get_submissions
 from views import get_scores_in_rubric
 
-from status_tests import is_overdue, is_near_due, is_submitted, now, date_format, is_below_mean, is_far_below_mean
+from status_tests import is_overdue, is_near_due, is_submitted, now, date_format, is_below_mean, is_far_below_mean, is_far_above_mean
 
 
 def display_hw_status(course_name:str, assign:pd.DataFrame, due_date: datetime, df: pd.DataFrame) -> None:
@@ -103,7 +103,8 @@ def display_course(course_filter: pd.DataFrame):
     col1, col2 = st.tabs(['Totals','Detailed'])
 
     with col1:
-        display_hw_totals(course)
+        display_hw_progress(course)
+        #display_hw_totals(course)
         #display_hw_assignment_scores(course)
 
 
@@ -159,6 +160,28 @@ def display_birds_eye(birds_eye_df: pd.DataFrame) -> None:
         columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS,
         allow_unsafe_jscode=True
         )
+    
+def display_rubric_component(title: str, column: str, max_column: str, dataframe: pd.DataFrame) -> None:
+    st.markdown('### %s'%title)
+    if column and len(dataframe):
+        mean = dataframe[column].dropna().mean()
+        overall_max = dataframe[max_column].dropna().max()
+        # overall_max  = dataframe[column].dropna().max()
+        if not pd.isna(mean):
+            st.write('Mean: {}'.format(mean))
+        if not pd.isna(overall_max):
+            st.write('Max: {}'.format(overall_max))
+        st.dataframe(dataframe.style.format(precision=0).apply(
+            lambda x: [f"background-color:pink" 
+                        if is_far_below_mean(x, mean, column) 
+                        else f'background-color:mistyrose' 
+                            if is_below_mean(x, mean, column) 
+                            else 'background-color:lightgreen' 
+                                    if is_far_above_mean(x, overall_max, mean, column)
+                                    else '' for i in x],
+            axis=1), use_container_width=True,hide_index=True)
+    else:
+        st.dataframe(dataframe, use_container_width=True,hide_index=True)
 
 def display_hw_assignment_scores(course = None) -> None:
     st.markdown('## Student Scores by Assignment')
@@ -228,4 +251,6 @@ def display_hw_totals(course = None) -> None:
                     # 'Submission Time':st.column_config.DatetimeColumn(format="D MM YY, h:mm a")
                     })
 
-    get_scores_in_rubric(course)
+
+def display_hw_progress(course = None) -> None:
+    get_scores_in_rubric(display_rubric_component, course)

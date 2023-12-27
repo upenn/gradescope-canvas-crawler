@@ -28,11 +28,21 @@ def is_near_due(x, due):
 def is_submitted(x: pd.Series):
     return x['Status'] != 'Missing'
 
-def is_below_mean(x: pd.Series, mean: float):
-    return x['Total Score'] < mean
+def is_below_mean(x: pd.Series, mean: float, total = None):
+    if total is None:
+        total = 'Total Score'
+    return x[total] < mean
 
-def is_far_below_mean(x: pd.Series, mean: float):
-    return x['Total Score'] < mean/3
+def is_far_below_mean(x: pd.Series, mean: float, total = None):
+    if total is None:
+        total = 'Total Score'
+    print (x[total], mean)
+    return x[total] < mean / 2
+
+def is_far_above_mean(x: pd.Series, max, mean: float, total = None):
+    if total is None:
+        total = 'Total Score'
+    return x[total] >= max * 0.9
 
 def row_test(row: pd.Series, due: datetime, mean: float, median: int, min: int, max: int, stdev: float, row_test_fn) -> str:
     return eval(row_test_fn)
