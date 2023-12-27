@@ -47,7 +47,7 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> pd.DataFr
         scales = []
         if course_id in config['rubric']:
             students = get_students()
-            students = students[students['course_id'] == course['cid']]
+            students = students[students['course_id'] == course['cid']].drop('course_id', axis=1)
             for group in config['rubric'][course_id]:
                 the_course = courses[courses['cid'] == course['cid']]
                 scores = get_submissions().\

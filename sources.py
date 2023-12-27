@@ -18,7 +18,7 @@ def get_courses() -> pd.DataFrame:
         full_courses_gs = pd.read_csv('data/gs_courses.csv')
 
     if not include_canvas_data:
-        return full_courses_gs
+        return full_courses_gs.rename(columns={'lti': 'canvas_id'})
     
     full_courses_canvas = pd.read_csv('data/canvas_courses.csv').rename(columns={'id':'canvas_id', 'name': 'canvas_name'})
     full_courses_canvas = full_courses_canvas[full_courses_canvas['workflow_state'] == 'available'].\
@@ -62,10 +62,32 @@ def get_students() -> pd.DataFrame:
 def get_assignments() -> pd.DataFrame:
     # TODO: how do we merge homeworks??
 
+    courses = get_courses()
+    if include_canvas_data:
+        canvas = pd.read_csv('data/canvas_assignments.csv').\
+            rename(columns={'id':'assignment_id', 'unlock_at': 'assigned', 'due_at': 'due'}).\
+            drop(columns=['lock_at', 'muted', 'allowed_attempts'])
+        canvas = canvas[canvas['course_id'].isin(courses['canvas_id'])].\
+            rename(columns={'course_id':'canvas_course_id'}).\
+            merge(courses[['canvas_id','cid']], left_on='canvas_course_id', right_on='canvas_id', how='left').drop(columns=['canvas_course_id'])
+        canvas['source'] = 'Canvas'
+
+        # st.dataframe(canvas)
+    
     if include_gradescope_data:
-        return pd.read_csv('data/gs_assignments.csv').rename(columns={'id':'assignment_id'})
+        gs = pd.read_csv('data/gs_assignments.csv').rename(columns={'id':'assignment_id'}).\
+            merge(courses[['cid','canvas_id']], left_on='course_id', right_on='cid', how='left').drop(columns='course_id')
+        gs['source'] = 'Gradescope'
+        # st.dataframe(gs)
+
+    if include_canvas_data and include_gradescope_data:
+        ret = pd.concat([gs, canvas])
+        # st.dataframe(ret)
+        return ret
+    elif include_gradescope_data:
+        return gs
     elif include_canvas_data:
-        return pd.read_csv('data/canvas_assignments.csv').rename(columns={'id':'assignment_id'})
+        return canvas
 
 @st.cache_data
 def get_submissions(do_all = False) -> pd.DataFrame:
@@ -109,6 +131,11 @@ def get_assignments_and_submissions(courses_df: pd.DataFrame, assignments_df: pd
 
     Also drops some duplicates
     '''
+
+    st.dataframe(assignments_df)
+    st.dataframe(submissions_df)
+    st.dataframe(courses_df)
+
     return assignments_df.rename(columns={'name':'assignment', 'course_id':'crs'}).\
         merge(submissions_df, left_on=['assignment_id','crs'], right_on=['assign_id','course_id']).\
         merge(courses_df,left_on='course_id', right_on='cid').drop(columns=['crs','course_id'])
