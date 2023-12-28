@@ -38,4 +38,4 @@ pandas>=1.4.3
 streamlit
 streamlit-aggrid
 watchdog
-
+html5lib

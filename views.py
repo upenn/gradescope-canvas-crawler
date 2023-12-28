@@ -42,7 +42,7 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> pd.DataFr
         # TODO: late??
         course_id = int(course['canvas_id'])
 
-        # st.write('For course {}, {}'.format(course_id, course['name']))
+        st.write('For course {}, {}'.format(course_id, course['name']))
         sums = []
         scales = []
         if course_id in config['rubric']:
@@ -53,7 +53,7 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> pd.DataFr
                 scores = get_submissions().\
                     merge(get_assignments().rename(columns={'name': 'assignment'}), \
                         left_on=['course_id','assign_id'], \
-                        right_on=['course_id','assignment_id']).\
+                        right_on=['cid','assignment_id']).\
                             merge(the_course.drop(columns=['name','year']).rename(columns={'shortname':'course'}), \
                                 left_on='course_id', right_on='cid')
                 

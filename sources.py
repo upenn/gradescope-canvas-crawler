@@ -18,22 +18,26 @@ def get_courses() -> pd.DataFrame:
         full_courses_gs = pd.read_csv('data/gs_courses.csv')
 
     if not include_canvas_data:
-        return full_courses_gs.rename(columns={'lti': 'canvas_id'})
+        return full_courses_gs.rename(columns={'lti': 'canvas_course_id', 'cid': 'gs_course_id'})
     
-    full_courses_canvas = pd.read_csv('data/canvas_courses.csv').rename(columns={'id':'canvas_id', 'name': 'canvas_name'})
+    full_courses_canvas = pd.read_csv('data/canvas_courses.csv').rename(columns={'id':'canvas_course_id', 'name': 'canvas_name'})
     full_courses_canvas = full_courses_canvas[full_courses_canvas['workflow_state'] == 'available'].\
         drop(columns=['is_public','workflow_state','start_at','end_at'])
 
     if include_gradescope_data:
-        return full_courses_gs.merge(full_courses_canvas, left_on='lti', right_on='canvas_id', how='outer').\
-            drop(columns=['lti','canvas_name'])
+        ret = full_courses_gs.merge(full_courses_canvas, left_on='lti', right_on='canvas_course_id', how='outer').\
+            drop(columns=['lti']).rename(columns={'cid': 'gs_course_id'})
+        
+        ret['name'] = ret.apply(lambda x: x['canvas_name'] if pd.isna(x['name']) else x['name'], axis=1)
+        return ret.drop(columns='canvas_name')
     else:
-        return full_courses_canvas
+        full_courses_canvas['gs_course_id'] = None
+        return full_courses_canvas.rename(columns={'canvas_name': 'name'})
 
 @st.cache_data
 def get_students() -> pd.DataFrame:
     if include_gradescope_data:
-        students_df = pd.read_csv('data/gs_students.csv').rename(columns={'name':'student'})
+        students_df = pd.read_csv('data/gs_students.csv').rename(columns={'name':'student','sid':'gs_student_id', 'user_id': 'gs_user_id'})
         students_df['emails2'] = students_df['emails'].apply(lambda x: json.loads(x.replace('\'','"')) if x else None)
         students_df = students_df[students_df['role'] == 'GSRole.STUDENT']
         students_df = students_df.explode('emails2').drop(columns=['emails','role'])
@@ -47,13 +51,19 @@ def get_students() -> pd.DataFrame:
 
     if include_canvas_data and include_gradescope_data:
         total = students_df.merge(canvas_mappings_df, left_on='course_id', right_on='gs_course_id').\
+            drop(columns=['course_id']).\
             merge(students_2_df, left_on=['student_id','lti'], right_on=['sis_user_id','canvas_cid'], how='outer').\
-            drop(columns=['sortable_name','sis_user_id', 'created_at', 'canvas_cid','email','canvas_student','login_id', 'lti'])
+            drop(columns=['sis_user_id', 'created_at', 'canvas_cid','canvas_student','login_id', 'lti'])
+        
+        total['student'] = total.apply(lambda x: x['student'] if not pd.isna(x['student']) else x['sortable_name'], axis=1)
+        total['emails2'] = total.apply(lambda x: x['emails2'] if not pd.isna(x['emails2']) else x['email'], axis=1)
+        total = total.drop(columns=['sortable_name', 'email']).rename(columns={'emails2':'email'})
     elif include_gradescope_data:
-        total = students_df
+        total = students_df.rename(columns={'emails2':'email'})
     else:
-        total = students_2_df
+        total = students_2_df.rename(columns={'emails2':'email'})
     
+    # st.write('Students')
     # st.dataframe(total)
 
     return total
@@ -65,37 +75,52 @@ def get_assignments() -> pd.DataFrame:
     courses = get_courses()
     if include_canvas_data:
         canvas = pd.read_csv('data/canvas_assignments.csv').\
-            rename(columns={'id':'assignment_id', 'unlock_at': 'assigned', 'due_at': 'due'}).\
+            rename(columns={'id':'canvas_assignment_id', 'unlock_at': 'assigned', 'due_at': 'due', 'points_possible': 'canvas_max_points'}).\
             drop(columns=['lock_at', 'muted', 'allowed_attempts'])
-        canvas = canvas[canvas['course_id'].isin(courses['canvas_id'])].\
-            rename(columns={'course_id':'canvas_course_id'}).\
-            merge(courses[['canvas_id','cid']], left_on='canvas_course_id', right_on='canvas_id', how='left').drop(columns=['canvas_course_id'])
+        canvas = canvas[canvas['course_id'].isin(courses['canvas_course_id'])].\
+            merge(courses[['canvas_course_id','gs_course_id']], left_on='course_id', right_on='canvas_course_id', how='left').drop(columns=['course_id'])
         canvas['source'] = 'Canvas'
 
         # st.dataframe(canvas)
     
     if include_gradescope_data:
-        gs = pd.read_csv('data/gs_assignments.csv').rename(columns={'id':'assignment_id'}).\
-            merge(courses[['cid','canvas_id']], left_on='course_id', right_on='cid', how='left').drop(columns='course_id')
+        gs = pd.read_csv('data/gs_assignments.csv').rename(columns={'id':'gs_assignment_id'}).\
+            merge(courses[['gs_course_id','canvas_course_id']], left_on='course_id', right_on='gs_course_id', how='left').drop(columns='course_id')
         gs['source'] = 'Gradescope'
-        # st.dataframe(gs)
 
     if include_canvas_data and include_gradescope_data:
-        ret = pd.concat([gs, canvas])
+        ret = pd.concat([gs, canvas]).rename(columns={'cid': 'gs_course_id'})
         # st.dataframe(ret)
         return ret
     elif include_gradescope_data:
-        return gs
+        return gs.rename(columns={'cid': 'gs_course_id'})
     elif include_canvas_data:
-        return canvas
+        return canvas.rename(columns={'cid': 'gs_course_id'})
 
 @st.cache_data
 def get_submissions(do_all = False) -> pd.DataFrame:
     # SID is useless because it is the Penn student ID *but can be null*
-    if not do_all:
-        return pd.read_csv('data/gs_submissions.csv')[['Email','Total Score','Max Points','Status','Submission ID','Submission Time','Lateness (H:M:S)','course_id','Sections','assign_id','First Name','Last Name']]
-    else:
-        return pd.read_csv('gs_submissions.csv').drop(columns=['SID','View Count', 'Submission Count'])
+    gs_sub = pd.read_csv('data/gs_submissions.csv')\
+        [['Email','Total Score','Max Points','Status','Submission ID','Submission Time','Lateness (H:M:S)','course_id','Sections','assign_id']].\
+        rename(columns={'assign_id': 'gs_assign_id_', 'course_id': 'gs_course_id_'})
+    
+    gs_sub = gs_sub.merge(get_students(), left_on=['Email','gs_course_id_'], 
+                          right_on=['email', 'gs_course_id']).\
+        drop(columns=['Email', 'gs_course_id_']).rename(columns={'canvas_sid': 'canvas_user_id'})
+    
+    canvas_sub = pd.read_csv('data/canvas_submissions.csv').\
+        rename(columns={'id': 'canvas_sub_id', 'assignment_id': 'canvas_assign_id_', 'user_id': 'canvas_user_id', 'submitted_at': 'Submission Time', 'score': 'Total Score'})
+    
+    canvas_sub['Status'] = canvas_sub.apply(lambda x: "Missing" if x['missing'] else 'Graded' if not pd.isna(x['graded_at']) else 'Ungraded', axis=1)
+    
+    canvas_sub = canvas_sub.merge(get_students(), left_on=['canvas_user_id'],\
+                                  right_on=['canvas_sid']).drop(columns=['canvas_sid', 'course_id', 'graded_at', 'grader_id', 'grade', 'entered_grade', 'entered_score', 'missing'])
+    
+    ## TODO: get Max Points by joining with the Canvas Assignment and getting its canvas_max_points
+    canvas_sub = canvas_sub.merge(get_assignments()[['canvas_assignment_id', 'canvas_max_points', 'canvas_course_id']], left_on=['canvas_assign_id_'], right_on=['canvas_assignment_id']).drop(columns='canvas_assign_id_')
+
+    ret = pd.concat([gs_sub, canvas_sub])
+    return ret
 
 @st.cache_data
 def get_extensions() -> pd.DataFrame:
@@ -132,13 +157,28 @@ def get_assignments_and_submissions(courses_df: pd.DataFrame, assignments_df: pd
     Also drops some duplicates
     '''
 
-    st.dataframe(assignments_df)
-    st.dataframe(submissions_df)
-    st.dataframe(courses_df)
+    # st.write('Courses')
+    # st.dataframe(get_courses())
+    # st.write('Students')
+    # st.dataframe(get_students())
+    # st.write('Assignments')
+    # st.dataframe(get_assignments())
+    st.write('Submissions')
+    st.dataframe(get_submissions())
 
-    return assignments_df.rename(columns={'name':'assignment', 'course_id':'crs'}).\
-        merge(submissions_df, left_on=['assignment_id','crs'], right_on=['assign_id','course_id']).\
-        merge(courses_df,left_on='course_id', right_on='cid').drop(columns=['crs','course_id'])
+    gs_sub = assignments_df.\
+        merge(submissions_df.rename(columns={'gs_course_id':'gs_course_id_'}), left_on=['gs_assignment_id','gs_course_id'], right_on=['gs_assign_id_','gs_course_id_']).\
+        drop(columns=['gs_course_id']).\
+        merge(courses_df,left_on='gs_course_id_', right_on='gs_course_id')#.drop(columns=['canvas_course_id','course_id'])
+
+    # canvas_sub = assignments_df.rename(columns={'name':'assignment'}).\
+    #     merge(submissions_df, left_on=['assignment_id','canvas_course_id'], right_on=['assign_id','course_id']).\
+    #     merge(courses_df,left_on='course_id', right_on='cid').drop(columns=['canvas_course_id','course_id'])
+
+    return gs_sub#, canvas_sub])
+# assignments_df.rename(columns={'name':'assignment'}).\
+#         merge(submissions_df, left_on=['assignment_id','canvas_course_id'], right_on=['assign_id','course_id']).\
+#         merge(courses_df,left_on='course_id', right_on='cid').drop(columns=['canvas_course_id','course_id'])
 
 
 def get_course_names():
@@ -152,8 +192,8 @@ def get_course_enrollments():
     Information about each course, students, and submissions
     """
     enrollments = get_students().\
-        merge(get_assignments_and_submissions(get_courses(), get_assignments(), get_submissions()), left_on='emails2', right_on='Email').\
-        drop(columns=['year','course_id','assign_id','emails2','Submission ID'])
+        merge(get_assignments_and_submissions(get_courses(), get_assignments(), get_submissions()), left_on='email', right_on='Email').\
+        drop(columns=['year','course_id','assign_id','Email','Submission ID'])
     
     enrollments_with_exts = enrollments.\
         merge(get_extensions(), left_on=['user_id','assignment_id','cid'], right_on=['user_id','assign_id','course_id'], how='left').\
@@ -173,7 +213,7 @@ def get_course_student_status_summary(
     Returns the number of total, submissions, overdue, and pending
     """
 
-    course_col = 'cid'
+    course_col = 'gs_course_id'
     # name = 'shortname'
     due_date = 'due'
     # student_id = 'sid'
