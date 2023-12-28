@@ -228,16 +228,25 @@ class CanvasConnection(CourseApi):
         try:
             the_list = []
 #            summaries = []
-            # CanvasConnection._get_paginated(the_list, 
-            the_list = course.get_course_level_student_summary_data(per_page=100)
-            summaries = [{'id': item['id'],
-                    'page_views': item['page_views'],
-                    'max_page_views': item['max_page_views'],
-                    'participations': item['participations'],
-                    'max_participations': item['max_participations'],
-                    # 'tardiness_breakdown': item.tardiness_breakdown,
-                    'course_id': item['course_id'] if 'course_id' in item else None
-                } for item in the_list]
+            CanvasConnection._get_paginated(the_list, course.get_course_level_student_summary_data(per_page=100))
+            if len(the_list) and isinstance(the_list[0], dict):                
+                summaries = [{'id': item['id'],
+                        'page_views': item['page_views'],
+                        'max_page_views': item['max_page_views'],
+                        'participations': item['participations'],
+                        'max_participations': item['max_participations'],
+                        # 'tardiness_breakdown': item.tardiness_breakdown,
+                        'course_id': item['course_id'] if 'course_id' in item else None
+                    } for item in the_list]
+            else:
+                summaries = [{'id': item.id,
+                        'page_views': item.page_views,
+                        'max_page_views': item.max_page_views,
+                        'participations': item.participations,
+                        'max_participations': item.max_participations,
+                        # 'tardiness_breakdown': item.tardiness_breakdown,
+                        'course_id': item.course_id
+                    } for item in the_list]
             # for item in the_list:
             #     print(vars(item).keys())
             #     summaries.append(vars(item))
