@@ -106,18 +106,22 @@ def get_submissions(do_all = False) -> pd.DataFrame:
     
     gs_sub = gs_sub.merge(get_students(), left_on=['Email','gs_course_id_'], 
                           right_on=['email', 'gs_course_id']).\
-        drop(columns=['Email', 'gs_course_id_']).rename(columns={'canvas_sid': 'canvas_user_id'})
+        drop(columns=['Email', 'gs_course_id_','Sections']).rename(columns={'canvas_sid': 'canvas_user_id'})
     
     canvas_sub = pd.read_csv('data/canvas_submissions.csv').\
         rename(columns={'id': 'canvas_sub_id', 'assignment_id': 'canvas_assign_id_', 'user_id': 'canvas_user_id', 'submitted_at': 'Submission Time', 'score': 'Total Score'})
     
     canvas_sub['Status'] = canvas_sub.apply(lambda x: "Missing" if x['missing'] else 'Graded' if not pd.isna(x['graded_at']) else 'Ungraded', axis=1)
+
+    ## It looks like late_policy_status == 'none' or 'late' but late is also a bit set
     
     canvas_sub = canvas_sub.merge(get_students(), left_on=['canvas_user_id'],\
-                                  right_on=['canvas_sid']).drop(columns=['canvas_sid', 'course_id', 'graded_at', 'grader_id', 'grade', 'entered_grade', 'entered_score', 'missing'])
-    
+                                  right_on=['canvas_sid']).drop(columns=['canvas_sid', 'course_id', 'graded_at', 'grader_id', 'grade', 'entered_grade', 'entered_score', 'missing', 'excused', 'late_policy_status'])
+
+
     ## TODO: get Max Points by joining with the Canvas Assignment and getting its canvas_max_points
-    canvas_sub = canvas_sub.merge(get_assignments()[['canvas_assignment_id', 'canvas_max_points', 'canvas_course_id']], left_on=['canvas_assign_id_'], right_on=['canvas_assignment_id']).drop(columns='canvas_assign_id_')
+    canvas_sub = canvas_sub.merge(get_assignments()[['canvas_assignment_id', 'canvas_max_points', 'canvas_course_id']], left_on=['canvas_assign_id_'], right_on=['canvas_assignment_id']).drop(columns='canvas_assign_id_').\
+    rename(columns={'canvas_max_points': 'Max Points'})
 
     ret = pd.concat([gs_sub, canvas_sub])
     return ret
@@ -149,7 +153,7 @@ def get_extensions() -> pd.DataFrame:
 #         return sub
 #     elif include_canvas_data:
 #         return pd.read_csv('data/canvas_submissions.csv').rename(columns={'id':'Submission ID', 'user_id':'SID', 'submitted_at':'Submission Time'})
-
+@st.cache_data
 def get_assignments_and_submissions(courses_df: pd.DataFrame, assignments_df: pd.DataFrame, submissions_df: pd.DataFrame) -> pd.DataFrame:
     '''
     Joins assignments and submissions, paying attention to course ID as well as assignment ID
@@ -163,13 +167,18 @@ def get_assignments_and_submissions(courses_df: pd.DataFrame, assignments_df: pd
     # st.dataframe(get_students())
     # st.write('Assignments')
     # st.dataframe(get_assignments())
-    st.write('Submissions')
-    st.dataframe(get_submissions())
+    # st.write('Submissions')
+    # st.dataframe(get_submissions())
 
-    gs_sub = assignments_df.\
+    gs_sub = assignments_df.drop(columns=['canvas_course_id', 'canvas_assignment_id']).\
         merge(submissions_df.rename(columns={'gs_course_id':'gs_course_id_'}), left_on=['gs_assignment_id','gs_course_id'], right_on=['gs_assign_id_','gs_course_id_']).\
         drop(columns=['gs_course_id']).\
-        merge(courses_df,left_on='gs_course_id_', right_on='gs_course_id')#.drop(columns=['canvas_course_id','course_id'])
+        merge(courses_df[['gs_course_id','name','sis_course_id']].rename(columns={'name': 'course_name'}),left_on='gs_course_id_', right_on='gs_course_id').\
+        drop(columns=['gs_course_id_','gs_assign_id_'])
+    
+    # gs_sub['Email'] = gs_sub['email']
+
+    # st.dataframe(gs_sub.head(100))
 
     # canvas_sub = assignments_df.rename(columns={'name':'assignment'}).\
     #     merge(submissions_df, left_on=['assignment_id','canvas_course_id'], right_on=['assign_id','course_id']).\
@@ -185,22 +194,25 @@ def get_course_names():
     """
     Retrieve the (short) name of every course
     """
-    return get_courses().drop_duplicates().dropna().rename(columns={'shortname':'Course'}).set_index('cid')['Course']
+    return get_courses().drop_duplicates().dropna().rename(columns={'shortname':'Course'}).set_index('gs_course_id')['Course']
 
-def get_course_enrollments():
+@st.cache_data
+def get_course_enrollments() -> pd.DataFrame:
     """
     Information about each course, students, and submissions
     """
-    enrollments = get_students().\
-        merge(get_assignments_and_submissions(get_courses(), get_assignments(), get_submissions()), left_on='email', right_on='Email').\
-        drop(columns=['year','course_id','assign_id','Email','Submission ID'])
+    # enrollments = get_students().\
+    #     merge(get_assignments_and_submissions(get_courses(), get_assignments(), get_submissions()), left_on='email', right_on='email').\
+    #     drop(columns=['year','course_id','assign_id','Email','Submission ID'])
+
+    enrollments = get_assignments_and_submissions(get_courses(), get_assignments(), get_submissions())
     
     enrollments_with_exts = enrollments.\
-        merge(get_extensions(), left_on=['user_id','assignment_id','cid'], right_on=['user_id','assign_id','course_id'], how='left').\
+        merge(get_extensions(), left_on=['gs_user_id','gs_assignment_id','gs_course_id'], right_on=['user_id','assign_id','course_id'], how='left').\
         drop(columns=['course_id', 'course_id'])
 
-    enrollments_with_exts = enrollments_with_exts.sort_values(['due','assignment','Status','Total Score','Last Name','First Name'],
-                                        ascending=[True,True,True,True,True,True])
+    enrollments_with_exts = enrollments_with_exts.sort_values(['due','name','Status','Total Score','student'],
+                                        ascending=[True,True,True,True,True])
     
     return enrollments_with_exts
 
@@ -219,13 +231,14 @@ def get_course_student_status_summary(
     # student_id = 'sid'
 
     enrollments = get_course_enrollments()
-    useful = enrollments.merge(get_courses().drop(columns=['shortname','name']),left_on='cid', right_on='cid').rename(columns={'shortname':'Course'})
 
-    useful['😰'] = useful.apply(lambda x: is_overdue(x, datetime.strptime(x[due_date], date_format)), axis=1)
-    useful['😅'] = useful.apply(lambda x: is_near_due(x, datetime.strptime(x[due_date], date_format)), axis=1)
-    useful['✓'] = useful.apply(lambda x: is_submitted(x), axis=1)
+    useful = enrollments.merge(get_courses().drop(columns=['shortname','name']),left_on='gs_course_id', right_on='gs_course_id').rename(columns={'shortname':'Course'})
 
-    ids_to_short = enrollments[['cid','shortname']].drop_duplicates().rename(columns={'shortname':'Course'}).set_index('cid')
+    useful['😰'] = 0#useful.apply(lambda x: is_overdue(x, datetime.strptime(x[due_date], date_format)), axis=1)
+    useful['😅'] = 0#useful.apply(lambda x: is_near_due(x, datetime.strptime(x[due_date], date_format)), axis=1)
+    useful['✓'] = 0#useful.apply(lambda x: is_submitted(x), axis=1)
+
+    ids_to_short = enrollments[['gs_course_id','course_name']].drop_duplicates().rename(columns={'course_name':'Course'}).set_index('gs_course_id')
 
     return useful[[course_col,'😰','😅','✓']].groupby(course_col).sum().join(ids_to_short)[['Course','😰','😅','✓']]
 

@@ -36,33 +36,34 @@ def sum_scaled(x, sums, maxes, scales):
 def get_scores_in_rubric(output: callable, course:pd.Series = None) -> pd.DataFrame:
     courses = get_courses()
     if course is not None:
-        courses = courses[courses['cid'] == course['cid']]
+        courses = courses[courses['gs_course_id'] == course['gs_course_id']]
 
     for inx, course in courses.drop_duplicates().iterrows():
         # TODO: late??
-        course_id = int(course['canvas_id'])
+        course_id = int(course['canvas_course_id'])
 
         st.write('For course {}, {}'.format(course_id, course['name']))
         sums = []
         scales = []
         if course_id in config['rubric']:
             students = get_students()
-            students = students[students['course_id'] == course['cid']].drop('course_id', axis=1)
+            students = students[students['gs_course_id'] == course['gs_course_id']].drop(columns=['gs_course_id'], axis=1)
             for group in config['rubric'][course_id]:
-                the_course = courses[courses['cid'] == course['cid']]
-                scores = get_submissions().\
-                    merge(get_assignments().rename(columns={'name': 'assignment'}), \
-                        left_on=['course_id','assign_id'], \
-                        right_on=['cid','assignment_id']).\
-                            merge(the_course.drop(columns=['name','year']).rename(columns={'shortname':'course'}), \
-                                left_on='course_id', right_on='cid')
+                the_course = courses[courses['gs_course_id'] == course['gs_course_id']]
+                # scores = get_submissions().\
+                #     merge(get_assignments().rename(columns={'name': 'assignment'}), \
+                #         left_on=['gs_course_id','gs_assign_id'], \
+                #         right_on=['cid','assignment_id']).\
+                #             merge(the_course.drop(columns=['name','year']).rename(columns={'shortname':'course'}), \
+                #                 left_on='course_id', right_on='cid')
+                scores = get_assignments_and_submissions(courses, get_assignments(), get_submissions())
                 
                 # st.dataframe(scores)
 
-                assigns = scores[scores['assignment'].apply(lambda x: config['rubric'][course_id][group]['substring'] in x)]\
-                        .groupby(by=['First Name', 'Last Name', 'Email']).\
+                assigns = scores[scores['name'].apply(lambda x: config['rubric'][course_id][group]['substring'] in x)]\
+                        .groupby(by=['student', 'email']).\
                         sum().reset_index()\
-                        [['First Name', 'Last Name', 'Total Score', "Max Points", 'Email']]
+                        [['student', 'Total Score', "Max Points", 'email']]
                 
                 if len(assigns):
                     assigns['Max Points'] = assigns['Max Points'].apply(lambda x: adjust_max(x, config['rubric'][course_id][group]))
@@ -70,8 +71,8 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> pd.DataFr
                     # Cap the total points based on max + ec max
                     assigns['Total Score'] = assigns.apply(lambda x: cap_points(x, config['rubric'][course_id][group]), axis=1)
 
-                students = students.merge(assigns[['Email', 'Total Score', 'Max Points']].rename(columns={'Total Score': group, 'Max Points': group + '_max'}), left_on='emails2', right_on='Email', how='left')\
-                    .drop(columns=['Email'])
+                students = students.merge(assigns[['email', 'Total Score', 'Max Points']].rename(columns={'Total Score': group, 'Max Points': group + '_max'}), left_on='email', right_on='email', how='left')
+                    # .drop(columns=['email_y']).rename(columns={'email_x': 'email'})
 
                 sums.append(group)
                 scales.append(config['rubric'][course_id][group]['points'])
@@ -79,7 +80,7 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> pd.DataFr
                 group_name = group[0].upper() + group[1:]
                 if group_name[-1] >= '0' and group_name[-1] <= '9':
                     group_name = group_name[0:-1] + ' ' + group_name[-1]
-                output(group_name, 'Total Score', 'Max Points', assigns.drop(columns=['Email']))
+                output(group_name, 'Total Score', 'Max Points', assigns.drop(columns=['email']))
 
                 # TODO: scale and sum the points
 
