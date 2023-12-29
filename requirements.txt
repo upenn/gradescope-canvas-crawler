@@ -39,3 +39,5 @@ streamlit
 streamlit-aggrid
 watchdog
 html5lib
+sqlalchemy
+

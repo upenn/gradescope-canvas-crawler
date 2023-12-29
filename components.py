@@ -53,13 +53,13 @@ def display_hw_status(course_name:str, assign:pd.DataFrame, due_date: datetime, 
             axis=1), use_container_width=True,hide_index=True,
                     column_config={
                         'name':None,'sid':None,'cid':None,
-                        'assign_id':None,'Last Name':None,'First Name':None, 
+                        'gs_assignment_id':None,'Last Name':None,'First Name':None, 
                         'assigned':None,'due': None,
                         'shortname':None,
-                        'Sections':None,
+                        # 'Sections':None,
                         'gs_course_id': None,
-                        'user_id': None,
-                        'student_id': None,
+                        'gs_user_id': None,
+                        'gs_student_id': None,
                         'canvas_sid': None,
                         'canvas_course_id': None,
                         'sis_course_id': None,
@@ -108,13 +108,13 @@ def display_course(course_filter: pd.DataFrame):
 
     with col2:
         course_info = enrollments[enrollments['gs_course_id']==course['gs_course_id']]
-        assigns = course_info['name'].drop_duplicates()
+        assigns = course_info[['gs_assignment_id','name']].drop_duplicates()
         # assigns['due'] = assigns['due'].apply(lambda x:pd.to_datetime(x) if x else None)
         # assigns = assigns.sort_values('due',ascending=True)
 
         for a,assign in assigns.iterrows():
-            df = course_info[course_info['assignment_id']==assign['assignment_id']].\
-                drop(columns=['sid','cid','assignment_id','assignment','Last Name','First Name'])
+            df = course_info[course_info['gs_assignment_id']==assign['gs_assignment_id']].\
+                drop(columns=['gs_course_id','gs_assignment_id'])
             
             assigned = list(df['assigned'].drop_duplicates())[0]
             due = list(df['due'].drop_duplicates())[0]

@@ -1,25 +1,10 @@
 import streamlit as st
 from streamlit import column_config
-from sources import get_assignments, get_course_names, get_courses, get_students, get_submissions, get_course_enrollments, get_course_student_status_summary
-from sources import include_canvas_data, include_gradescope_data
+from sources import get_course_names, get_course_student_status_summary
 
 from components import display_course, display_birds_eye, is_overdue
 from status_tests import is_overdue, is_near_due, is_submitted, now, date_format
-
-import yaml
-import datetime
-import pandas as pd
-
-with open('config.yaml') as config_file:
-    config = yaml.safe_load(config_file)
-
-    if 'show' in config['canvas']:
-        include_canvas_data = config['canvas']['show']
-        print ('Canvas data: {}'.format(include_canvas_data))
-
-    if 'show' in config['gradescope']:
-        include_gradescope_data = config['gradescope']['show']
-        print ('Gradescope data: {}'.format(include_gradescope_data))
+from sources import include_canvas_data, include_gradescope_data
 
 
 name = ''

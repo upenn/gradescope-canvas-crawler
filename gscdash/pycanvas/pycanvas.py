@@ -230,7 +230,7 @@ class CanvasConnection(CourseApi):
 #            summaries = []
             # CanvasConnection._get_paginated(the_list, 
             the_list = course.get_course_level_student_summary_data(per_page=100)
-            if len(the_list) and isinstance(the_list[0], dict):                
+            if isinstance(the_list[0], dict):                
                 summaries = [{'id': item['id'],
                         'page_views': item['page_views'],
                         'max_page_views': item['max_page_views'],
