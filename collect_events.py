@@ -64,6 +64,7 @@ if __name__ == "__main__":
         all_assignments = []
         all_submissions = []
         all_student_summaries = []
+        first = True
         for course_id in config['canvas']['course_ids']:
             print(course_id)
 
@@ -73,33 +74,26 @@ if __name__ == "__main__":
             all_assignments.extend(assignments)
             all_submissions.extend(submissions)
             all_student_summaries.extend(student_summaries)
+            write(student_summaries, 'canvas_student_summaries', first)
+            write(students, 'canvas_students', first)
+            write(assignments, 'canvas_assignments', first)
+            write(submissions, 'canvas_submissions', first)
+
+            first = False
 
         canvas_courses.to_csv('data/canvas_courses.csv',index=False)
         write(canvas_courses, 'canvas_courses', True)
         if len(all_student_summaries):
             pd.concat(all_student_summaries).to_csv('data/canvas_student_summaries.csv', index=False)
-            first = True
-            for student_summary in all_student_summaries:
-                write(student_summary, 'canvas_student_summaries', first)
-                first = False
+
         if len(all_students):
             pd.concat(all_students).to_csv('data/canvas_students.csv', index=False)
-            first = True
-            for student in all_students:
-                write(student, 'canvas_students', first)
-                first = False
+
         if len(all_assignments):
             pd.concat(all_assignments).to_csv('data/canvas_assignments.csv', index=False)
-            first = True
-            for assignment in all_assignments:
-                write(assignment, 'canvas_assignments', first)
-                first = False
+
         if len(all_submissions):
             pd.concat(all_submissions).to_csv('data/canvas_submissions.csv', index=False)
-            first = True
-            for submission in all_submissions:
-                write(submission, 'canvas_submissions', first)
-                first = False
 
     if config['gradescope']['enabled']:
         print ('Gradescope semesters')
@@ -117,6 +111,7 @@ if __name__ == "__main__":
         gs_assignments = []
         gs_submissions = []
         gs_extensions = []
+        first = True
         for course in courses:
             print(course.name)
             students, assignments, submissions, extensions = process_gs_course(email, pwd, course)
@@ -125,40 +120,34 @@ if __name__ == "__main__":
             gs_submissions.extend(submissions)
             gs_extensions.extend(extensions)
 
+            student_tbl = students.explode('emails')
+            student_tbl['role'] = student_tbl['role'].apply(lambda x: x.name)
+            student_tbl['user_id'] = student_tbl['user_id'].apply(lambda x: x if x != '' else None)
+            student_tbl['student_id'] = student_tbl['student_id'].apply(lambda x: x if x != '' else None)
+            student_tbl = student_tbl.astype({'sid': str, 'course_id': int})
+            write(student_tbl, 'gs_students', first)
+            assignment_tbl = assignments.astype({'id': int, 'course_id': int})
+            write(assignment_tbl, 'gs_assignments', first)
+            submission_tbl = submissions.astype({'SID': str, 'course_id': int, 'assign_id': int})
+            submission_tbl = submission_tbl[['First Name', 'Last Name', 'SID', 'Email','course_id','assign_id', 'Sections', 'Total Score', 'Max Points', 'Status', 'Submission ID', 'Submission Time', 'Lateness (H:M:S)', 'View Count', 'Submission Count']]
+            write(submission_tbl, 'gs_submissions', first)
+            extension_tbl = extensions.astype({'course_id': int, 'assign_id': int, 'user_id': int})
+            write(extension_tbl, 'gs_extensions', first)
+
+            first = False
+
         gs_courses = gs_courses.astype({'cid': int, 'lti': int})
         gs_courses.to_csv('data/gs_courses.csv',index=False)
         write(gs_courses, 'gs_courses', True)
         if len(gs_students):
             pd.concat(gs_students).to_csv('data/gs_students.csv', index=False)
-            first = True
-            for student in gs_students:
-                student = student.explode('emails')
-                student['role'] = student['role'].apply(lambda x: x.name)
-                student['user_id'] = student['user_id'].apply(lambda x: x if x != '' else None)
-                student['student_id'] = student['student_id'].apply(lambda x: x if x != '' else None)
-                student = student.astype({'sid': str, 'course_id': int})
-                write(student, 'gs_students', first)
-                first = False
+
         if len(gs_assignments):
             pd.concat(gs_assignments).to_csv('data/gs_assignments.csv', index=False)
-            first = True
-            for assignment in gs_assignments:
-                assignment = assignment.astype({'id': int, 'course_id': int})
-                write(assignment, 'gs_assignments', first)
-                first = False
+
         if len(gs_submissions):
             pd.concat(gs_submissions).to_csv('data/gs_submissions.csv', index=False)
-            first = True
-            for submission in gs_submissions:
-                submission = submission.astype({'SID': str, 'course_id': int, 'assign_id': int})
-                submission = submission[['First Name', 'Last Name', 'SID', 'Email','course_id','assign_id', 'Sections', 'Total Score', 'Max Points', 'Status', 'Submission ID', 'Submission Time', 'Lateness (H:M:S)', 'View Count', 'Submission Count']]
-                write(submission, 'gs_submissions', first)
-                first = False
+
         if len(gs_extensions):
             pd.concat(gs_extensions).to_csv('data/gs_extensions.csv', index=False)
-            first = True
-            for extension in gs_extensions:
-                extension = extension.astype({'course_id': int, 'assign_id': int, 'user_id': int})
-                write(extension, 'gs_extensions', first)
-                first = False
 
