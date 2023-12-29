@@ -61,7 +61,7 @@ def display_hw_status(course_name:str, assign:pd.DataFrame, due_date: datetime, 
                         'user_id': None,
                         'student_id': None,
                         'canvas_sid': None,
-                        'canvas_id': None,
+                        'canvas_course_id': None,
                         'sis_course_id': None,
                         'Total Score':st.column_config.NumberColumn(step=1,format="$%d"),
                         'Max Points':st.column_config.NumberColumn(step=1,format="$%d"),
@@ -91,12 +91,10 @@ def display_course(course_filter: pd.DataFrame):
     """
 
     courses_df = get_courses()
-    # enrollments = get_course_enrollments()
+    enrollments = get_course_enrollments()
     # assignments_df = get_assignments()
 
     course = courses_df[courses_df['shortname']==course_filter].iloc[0]
-    # course_info = enrollments[enrollments['shortname']==course['shortname']]
-    #assigns = course_info['assignment'].drop_duplicates()
     # assigns = assignments_df[assignments_df['cid']==course['cid']].copy().dropna()
     st.subheader("Status of %s:"%course['shortname'])
 
@@ -108,26 +106,28 @@ def display_course(course_filter: pd.DataFrame):
         #display_hw_assignment_scores(course)
 
 
-    # with col2:
-    #     assigns['due'] = assigns['due'].apply(lambda x:pd.to_datetime(x) if x else None)
-    #     assigns = assigns.sort_values('due',ascending=True)
+    with col2:
+        course_info = enrollments[enrollments['gs_course_id']==course['gs_course_id']]
+        assigns = course_info['name'].drop_duplicates()
+        # assigns['due'] = assigns['due'].apply(lambda x:pd.to_datetime(x) if x else None)
+        # assigns = assigns.sort_values('due',ascending=True)
 
-    #     for a,assign in assigns.iterrows():
-    #         df = course_info[course_info['assignment_id']==assign['assignment_id']].\
-    #             drop(columns=['sid','cid','assignment_id','assignment','Last Name','First Name'])
+        for a,assign in assigns.iterrows():
+            df = course_info[course_info['assignment_id']==assign['assignment_id']].\
+                drop(columns=['sid','cid','assignment_id','assignment','Last Name','First Name'])
             
-    #         assigned = list(df['assigned'].drop_duplicates())[0]
-    #         due = list(df['due'].drop_duplicates())[0]
-    #         assigned_date = datetime.strptime(assigned, date_format)
-    #         due_date = datetime.strptime(due, date_format)
+            assigned = list(df['assigned'].drop_duplicates())[0]
+            due = list(df['due'].drop_duplicates())[0]
+            assigned_date = datetime.strptime(assigned, date_format)
+            due_date = datetime.strptime(due, date_format)
 
-    #         with st.container():
-    #             # Skip homework if it's not yet assigned!
-    #             if now < assigned_date:
-    #                 continue
+            with st.container():
+                # Skip homework if it's not yet assigned!
+                if now < assigned_date:
+                    continue
 
-    #             display_hw_status(course['name'], assign, due_date, df)
-    #     st.divider()
+                display_hw_status(course['name'], assign, due_date, df)
+        st.divider()
 
 def display_birds_eye(birds_eye_df: pd.DataFrame) -> None:
     overdue = 0

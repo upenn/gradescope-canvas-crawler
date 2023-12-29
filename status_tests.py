@@ -6,7 +6,7 @@ import pandas as pd
 now = datetime.now()
 date_format = '%Y-%m-%d %H:%M:%S'
 timezone = datetime.now().astimezone().tzinfo
-due_date = 'Due ({})'.format(timezone)
+due_date = 'due'# ({})'.format(timezone)
 
 ## Grace period
 grace = timedelta(days=5)

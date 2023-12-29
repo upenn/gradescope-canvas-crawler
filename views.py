@@ -13,10 +13,10 @@ def cap_points(row, rubric_items):
 
     if actual_score > max_score and 'max_extra_credit' in rubric_items \
         and actual_score > max_score + rubric_items['max_extra_credit']:
-        print(max_score)
+        # print(max_score)
         return max_score + rubric_items['max_extra_credit']
     else:
-        print(actual_score)
+        # print(actual_score)
         return actual_score
 
 def adjust_max(row, rubric_items):
@@ -50,12 +50,6 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> pd.DataFr
             students = students[students['gs_course_id'] == course['gs_course_id']].drop(columns=['gs_course_id'], axis=1)
             for group in config['rubric'][course_id]:
                 the_course = courses[courses['gs_course_id'] == course['gs_course_id']]
-                # scores = get_submissions().\
-                #     merge(get_assignments().rename(columns={'name': 'assignment'}), \
-                #         left_on=['gs_course_id','gs_assign_id'], \
-                #         right_on=['cid','assignment_id']).\
-                #             merge(the_course.drop(columns=['name','year']).rename(columns={'shortname':'course'}), \
-                #                 left_on='course_id', right_on='cid')
                 scores = get_assignments_and_submissions(courses, get_assignments(), get_submissions())
                 
                 # st.dataframe(scores)

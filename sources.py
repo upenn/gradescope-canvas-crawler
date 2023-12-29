@@ -81,12 +81,19 @@ def get_assignments() -> pd.DataFrame:
             merge(courses[['canvas_course_id','gs_course_id']], left_on='course_id', right_on='canvas_course_id', how='left').drop(columns=['course_id'])
         canvas['source'] = 'Canvas'
 
+        # TODO: convert due, assigned to datetime
+        canvas['due'] = canvas['due'].apply(lambda x: datetime.strptime(x, "%Y-%m-%dT%H:%M:%SZ") if not pd.isna(x) else None)
+        canvas['assigned'] = canvas['assigned'].apply(lambda x: datetime.strptime(x, "%Y-%m-%dT%H:%M:%SZ") if not pd.isna(x) else None)
+
         # st.dataframe(canvas)
     
     if include_gradescope_data:
         gs = pd.read_csv('data/gs_assignments.csv').rename(columns={'id':'gs_assignment_id'}).\
             merge(courses[['gs_course_id','canvas_course_id']], left_on='course_id', right_on='gs_course_id', how='left').drop(columns='course_id')
         gs['source'] = 'Gradescope'
+
+        gs['due'] = gs['due'].apply(lambda x: datetime.strptime(x, date_format))
+        gs['assigned'] = gs['assigned'].apply(lambda x: datetime.strptime(x, date_format))
 
     if include_canvas_data and include_gradescope_data:
         ret = pd.concat([gs, canvas]).rename(columns={'cid': 'gs_course_id'})
@@ -138,8 +145,12 @@ def get_extensions() -> pd.DataFrame:
         extensions = pd.read_csv('data/gs_extensions.csv').\
             drop(columns=['Edit','Section', 'First & Last Name Swap', 'Last, First Name Swap', 'Sections', duelate, release, 'Time Limit'])
 
-        extensions[due] = extensions[due].apply(lambda x: datetime.strptime(x, '%b %d %Y %I:%M %p') if x != '(no change)' and x != 'No late due date' and x != '--' and not pd.isnull(x) else None)
-        extensions[late] = extensions[late].apply(lambda x: datetime.strptime(x, '%b %d %Y %I:%M %p') if x != '(no change)' and x != 'No late due date' and x != '--' and not pd.isnull(x) else None)
+        extensions['Due'] = extensions[due].apply(lambda x: datetime.strptime(x, '%b %d %Y %I:%M %p') if x != '(no change)' and x != 'No late due date' and x != '--' and not pd.isnull(x) else None)
+        extensions['Late'] = extensions[late].apply(lambda x: datetime.strptime(x, '%b %d %Y %I:%M %p') if x != '(no change)' and x != 'No late due date' and x != '--' and not pd.isnull(x) else None)
+
+        extensions.drop(columns=[due, late], inplace=True)
+        extensions.rename(columns={'course_id': 'gs_course_id_', 'assign_id': 'gs_assign_id_', 'user_id': 'gs_user_id_'}, inplace=True)
+        # st.dataframe(extensions)
         
         return extensions
     elif include_canvas_data:
@@ -201,15 +212,12 @@ def get_course_enrollments() -> pd.DataFrame:
     """
     Information about each course, students, and submissions
     """
-    # enrollments = get_students().\
-    #     merge(get_assignments_and_submissions(get_courses(), get_assignments(), get_submissions()), left_on='email', right_on='email').\
-    #     drop(columns=['year','course_id','assign_id','Email','Submission ID'])
-
-    enrollments = get_assignments_and_submissions(get_courses(), get_assignments(), get_submissions())
+    enrollments_with_exts = get_assignments_and_submissions(get_courses(), get_assignments(), get_submissions()).\
+        merge(get_extensions(), left_on=['gs_user_id','gs_assignment_id','gs_course_id'], right_on=['gs_user_id_','gs_assign_id_','gs_course_id_'], how='left').\
+        drop(columns=['gs_course_id_','gs_assign_id_','gs_user_id_'])
     
-    enrollments_with_exts = enrollments.\
-        merge(get_extensions(), left_on=['gs_user_id','gs_assignment_id','gs_course_id'], right_on=['user_id','assign_id','course_id'], how='left').\
-        drop(columns=['course_id', 'course_id'])
+    enrollments_with_exts.apply(lambda x: x['due'] if pd.isna(x['Due']) else x['Due'], axis=1)
+    enrollments_with_exts.drop(columns=['Due','Late'], inplace=True)
 
     enrollments_with_exts = enrollments_with_exts.sort_values(['due','name','Status','Total Score','student'],
                                         ascending=[True,True,True,True,True])
@@ -231,12 +239,13 @@ def get_course_student_status_summary(
     # student_id = 'sid'
 
     enrollments = get_course_enrollments()
+    # st.dataframe(enrollments.head(100))
 
     useful = enrollments.merge(get_courses().drop(columns=['shortname','name']),left_on='gs_course_id', right_on='gs_course_id').rename(columns={'shortname':'Course'})
 
-    useful['😰'] = 0#useful.apply(lambda x: is_overdue(x, datetime.strptime(x[due_date], date_format)), axis=1)
-    useful['😅'] = 0#useful.apply(lambda x: is_near_due(x, datetime.strptime(x[due_date], date_format)), axis=1)
-    useful['✓'] = 0#useful.apply(lambda x: is_submitted(x), axis=1)
+    useful['😰'] = useful.apply(lambda x: is_overdue(x, x['due']), axis=1)
+    useful['😅'] = useful.apply(lambda x: is_near_due(x, x['due']), axis=1)
+    useful['✓'] = useful.apply(lambda x: is_submitted(x), axis=1)
 
     ids_to_short = enrollments[['gs_course_id','course_name']].drop_duplicates().rename(columns={'course_name':'Course'}).set_index('gs_course_id')
 
