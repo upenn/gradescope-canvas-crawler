@@ -36,7 +36,7 @@ def is_below_mean(x: pd.Series, mean: float, total = None):
 def is_far_below_mean(x: pd.Series, mean: float, total = None):
     if total is None:
         total = 'Total Score'
-    print (x[total], mean)
+    # print (x[total], mean)
     return x[total] < mean / 2
 
 def is_far_above_mean(x: pd.Series, max, mean: float, total = None):

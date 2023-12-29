@@ -33,6 +33,26 @@ def get_canvas_students() -> pd.DataFrame:
     return pd.read_sql_table("canvas_students", connection)
     # return pd.read_csv('data/canvas_students.csv')
 
+def get_aligned_students(include_gs: bool, include_canvas: bool) -> pd.DataFrame:
+    with dbEngine.connect() as connection:
+        if include_gs and include_canvas:
+            courses = pd.read_sql(sql=text("""select cast(sid as int) as gs_student_id, cast(student_id as int) as student_id, 
+                                           case when gs.name is not null then gs.name else sortable_name end as student, 
+                                           case when emails is not null then emails else c.email end as email, cast(user_id as int) as gs_user_id, gs.course_id as gs_course_id, lti as canvas_course_id, c.id as canvas_sid
+                                           from gs_students gs join gs_courses crs on gs.course_id=crs.cid full join canvas_students c on student_id = sis_user_id
+                                           where role like "%STUDENT"
+                                           """), con=connection)
+        elif include_gs:
+            courses = pd.read_sql(sql=text("""select cast(sid as int) as gs_student_id, cast(student_id as int) as student_id, gs.name as student, emails as email, cast(user_id as int) as gs_user_id, gs.course_id as gs_course_id, lti as canvas_course_id, null as canvas_sid
+                                           from gs_students gs join gs_courses crs on gs.course_id=crs.cid
+                                           where role like "%STUDENT"
+                                           """), con=connection)
+        else:
+            courses = pd.read_sql(sql=text("""select null as gs_student_id, cast(sis_user_id as int) as student_id,sortable_name as student, email, null as gs_user_id, null as gs_course_id, course_id as canvas_course_id, c.id as canvas_sid
+                                    from canvas_students c"""), con=connection)
+
+        return courses
+
 def get_gs_courses() -> pd.DataFrame:
     return pd.read_sql_table("gs_courses", connection)
 
@@ -50,7 +70,7 @@ def get_aligned_courses(include_gs: bool, include_canvas: bool) -> pd.DataFrame:
                                     from gs_courses gs"""), con=connection)
         else:
             courses = pd.read_sql(sql=text("""select null as gs_course_id, null as gs_name, c.name as canvas_name, null as shortname, null as term, c.id as canvas_course_id, sis_course_id, start_at, end_at
-                                    from gs_courses gs"""), con=connection)
+                                    from canvas_courses gs"""), con=connection)
         
         courses['start_at'] = courses['start_at'].apply(lambda x: datetime.strptime(x, "%Y-%m-%dT%H:%M:%SZ") if not pd.isna(x) else None)
         courses['end_at'] = courses['end_at'].apply(lambda x: datetime.strptime(x, "%Y-%m-%dT%H:%M:%SZ") if not pd.isna(x) else None)
@@ -63,6 +83,28 @@ def get_gs_assignments() -> pd.DataFrame:
 def get_canvas_assignments() -> pd.DataFrame:
     return pd.read_sql_table("canvas_assignments", connection)
     # return pd.read_csv('data/canvas_assignments.csv')
+
+def get_aligned_assignments(include_gs: bool, include_canvas: bool) -> pd.DataFrame:
+    with dbEngine.connect() as connection:
+        if include_gs and include_canvas:
+            assignments = pd.read_sql(sql=text("""select gs.id as gs_assignment_id, null as canvas_assignment_id, gs.course_id as gs_course_id, crs.lti as canvas_course_id, gs.name, strftime("%Y-%m-%dT%H:%M:%SZ", gs.assigned) as assigned, strftime("%Y-%m-%dT%H:%M:%SZ", gs.due) as due, null as canvas_max_points, "Gradescope" as source
+                                                from gs_assignments gs join gs_courses crs on gs.course_id = crs.cid
+                                                union
+                                                select null as gs_assignment_id, c.id as canvas_assignment_id, null as gs_course_id, c.course_id as canvas_course_id, c.name as name, unlock_at as assigned, due_at as due, points_possible as canvas_max_points, "Canvas" as source
+                                               from canvas_assignments c left join gs_courses crs on c.course_id = crs.lti
+                                               """), con=connection)
+        elif include_gs:
+            assignments = pd.read_sql(sql=text("""select gs.id as gs_assignment_id, null as canvas_assignment_id, gs.course_id as gs_course_id, crs.lti as canvas_course_id, gs.name, strftime("%Y-%m-%dT%H:%M:%SZ", gs.assigned) as assigned, strftime("%Y-%m-%dT%H:%M:%SZ", gs.due) as due, null as canvas_max_points, "Gradescope" as source
+                                    from gs_assignments gs join gs_courses crs on gs.course_id = crs.cid
+                                    """), con=connection)
+        else:
+            assignments = pd.read_sql(sql=text("""select null as gs_assignment_id, c.id as canvas_assignment_id, null as gs_course_id, c.course_id as canvas_course_id, c.name as name, unlock_at as assigned, due_at as due, points_possible as canvas_max_points, "Canvas" as source
+                                    from canvas_assignments c"""), con=connection)
+
+        assignments['due'] = assignments['due'].apply(lambda x: datetime.strptime(x, "%Y-%m-%dT%H:%M:%SZ") if not pd.isna(x) else None)
+        assignments['assigned'] = assignments['assigned'].apply(lambda x: datetime.strptime(x, "%Y-%m-%dT%H:%M:%SZ") if not pd.isna(x) else None)
+
+        return assignments
 
 def get_gs_submissions() -> pd.DataFrame:
     return pd.read_sql_table("gs_submissions", connection)

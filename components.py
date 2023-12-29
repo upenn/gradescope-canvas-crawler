@@ -118,8 +118,8 @@ def display_course(course_filter: pd.DataFrame):
             
             assigned = list(df['assigned'].drop_duplicates())[0]
             due = list(df['due'].drop_duplicates())[0]
-            assigned_date = datetime.strptime(assigned, date_format)
-            due_date = datetime.strptime(due, date_format)
+            assigned_date = assigned#datetime.strptime(assigned, date_format)
+            due_date = due#datetime.strptime(due, date_format)
 
             with st.container():
                 # Skip homework if it's not yet assigned!
