@@ -23,7 +23,7 @@ canvas:
   - submissions
 
 rubric:
-  1741973:
+  1234:
     midterm1:
       substring: Midterm 1
       points: 15

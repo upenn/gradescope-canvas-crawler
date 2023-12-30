@@ -41,5 +41,4 @@ watchdog
 html5lib
 sqlalchemy
 matplotlib
-plotly
 

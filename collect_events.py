@@ -9,7 +9,10 @@
 ##
 ## All original license terms apply.
 ##
-## Modifications by Zack Ives and are licensed under the Apache License 2.0
+## Modifications by Zack Ives, 2023+.
+##
+## Forms the crawler component for a broader Penn CIS Teaching Dashboard, https://github.com/upenn/gradescope-canvas-dashboard.
+## The dashboard component is licensed under the Apache 2.0 license.
 ##
 ## Usage:
 ##  * Update config.yaml (copied from config.yaml.default) to include a Gradescope user ID and password.
@@ -19,10 +22,8 @@
 #####################################################################################################################
 
 import os
-# import yaml
 import pandas as pd
-from data import config, connection, dbEngine
-import sqlite3
+from data import config, dbEngine
 
 from gscdash.pycanvas.canvas_status import CanvasStatus
 from gscdash.pyscope.gs_status import GradescopeStatus
@@ -44,9 +45,6 @@ def write(dataframe: pd.DataFrame, name: str, first: bool = True):
         dataframe.to_sql(name, dbEngine, if_exists='append', index=False)
 
 if __name__ == "__main__":
-    # with open('config.yaml') as config_file:
-        # config = yaml.safe_load(config_file)
-
     canvas_url = config['canvas']['site']
     canvas_key = config['canvas']['api_key']
 

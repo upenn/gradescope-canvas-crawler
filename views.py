@@ -1,15 +1,44 @@
+#################################################################################
+## views.py - views for the Penn CIS Teaching Dashboard
+##
+## Basic multi-table views used to present grade status information
+## within the Penn CIS Teaching Dashboard.
+##
+## Licensed to the Apache Software Foundation (ASF) under one
+## or more contributor license agreements.  See the NOTICE file
+## distributed with this work for additional information
+## regarding copyright ownership.  The ASF licenses this file
+## to you under the Apache License, Version 2.0 (the
+## "License"); you may not use this file except in compliance
+## with the License.  You may obtain a copy of the License at
+## 
+##   http://www.apache.org/licenses/LICENSE-2.0
+## 
+## Unless required by applicable law or agreed to in writing,
+## software distributed under the License is distributed on an
+## "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+## KIND, either express or implied.  See the License for the
+## specific language governing permissions and limitations
+## under the License.    
+##
+#################################################################################
+
 import streamlit as st
 import pandas as pd
 import yaml
 import sys
 from os import path
 
-from sources import get_students, get_courses, get_assignments, get_submissions, get_assignments_and_submissions
+from sources import get_students, get_courses, get_assignments_and_submissions
+from sources import get_course_enrollments
 
 with open('config.yaml') as config_file:
     config = yaml.safe_load(config_file)
 
 def cap_points(row, rubric_items):
+    '''
+    If the student has earned more than the max points, cap it at the max points
+    '''
     actual_score = row['Total Score']
     max_score = row['Max Points']
 
@@ -22,6 +51,9 @@ def cap_points(row, rubric_items):
         return actual_score
 
 def adjust_max(row, rubric_items):
+    '''
+    If the max points exceeds the maximum we specified in the rubric, cap it there
+    '''
     max_score = row
     if 'max_score' in rubric_items and max_score > rubric_items['max_score']:
         max_score = rubric_items['max_score']
@@ -29,6 +61,9 @@ def adjust_max(row, rubric_items):
     return max_score
 
 def sum_scaled(x, sums, maxes, scales):
+    '''
+    Scale the score components according to the rubric, and sum them up
+    '''
     total = 0
     for i in range(len(sums)):
         if not pd.isnull(x[sums[i]]):
@@ -39,6 +74,12 @@ def sum_scaled(x, sums, maxes, scales):
     return total
 
 def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.DataFrame]:
+    '''
+    Returns a list of dataframes, one for each course, with overall grade scoring information.
+
+    Along the way, it creates a series of dataframes for each rubric item.  It calls the output function
+    to display the rubric item in the UI.
+    '''
     courses = get_courses()
     if course is not None:
         courses = courses[courses['gs_course_id'] == course['gs_course_id']]
@@ -58,12 +99,7 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.D
             students = students[students['gs_course_id'] == course['gs_course_id']].drop(columns=['gs_course_id'], axis=1).drop_duplicates()
             students = students.astype({'student_id': int})
             for group in config['rubric'][course_id]:
-                # the_course = courses[courses['gs_course_id'] == course['gs_course_id']]
                 the_course = scores[scores['gs_course_id'] == course['gs_course_id']]
-
-                # st.dataframe(the_course)
-                
-                # st.dataframe(scores)
 
                 # The subset we want -- just those matching the substring
                 assigns = the_course[the_course['name'].apply(lambda x: config['rubric'][course_id][group]['substring'] in x)]
@@ -144,3 +180,30 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.D
             grading_dfs.append(grading_df)
 
     return grading_dfs
+
+def get_course_student_status_summary(
+        is_overdue, 
+        is_near_due, 
+        is_submitted) -> pd.DataFrame:
+    """
+    Returns the number of total, submissions, overdue, and pending
+    """
+
+    course_col = 'gs_course_id'
+    # name = 'shortname'
+    due_date = 'due'
+    # student_id = 'sid'
+
+    enrollments = get_course_enrollments()
+    # st.dataframe(enrollments.head(100))
+
+    useful = enrollments.rename(columns={'gs_course_id': 'gs_course_id_', 'canvas_course_id': 'canvas_course_id_'}).merge(get_courses().drop(columns=['shortname','name']),left_on='gs_course_id_', right_on='gs_course_id').rename(columns={'shortname':'Course'})
+
+    useful['😰'] = useful.apply(lambda x: is_overdue(x, x['due']), axis=1)
+    useful['😅'] = useful.apply(lambda x: is_near_due(x, x['due']), axis=1)
+    useful['✓'] = useful.apply(lambda x: is_submitted(x), axis=1)
+
+    ids_to_short = enrollments[['gs_course_id','course_name']].drop_duplicates().rename(columns={'course_name':'Course'}).set_index('gs_course_id')
+
+    return useful[[course_col,'😰','😅','✓']].groupby(course_col).sum().join(ids_to_short)[['Course','😰','😅','✓']]
+

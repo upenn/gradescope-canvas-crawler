@@ -1,3 +1,28 @@
+#################################################################################
+## sources.py - data sources for the Penn CIS Teaching Dashboard
+##
+## Provides interfaces to data about courses, students, assignments, submissions,
+## and extensions.  Also provides a cache for the data, to avoid repeated retrieval.
+##
+## Licensed to the Apache Software Foundation (ASF) under one
+## or more contributor license agreements.  See the NOTICE file
+## distributed with this work for additional information
+## regarding copyright ownership.  The ASF licenses this file
+## to you under the Apache License, Version 2.0 (the
+## "License"); you may not use this file except in compliance
+## with the License.  You may obtain a copy of the License at
+## 
+##   http://www.apache.org/licenses/LICENSE-2.0
+## 
+## Unless required by applicable law or agreed to in writing,
+## software distributed under the License is distributed on an
+## "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+## KIND, either express or implied.  See the License for the
+## specific language governing permissions and limitations
+## under the License.    
+##
+#################################################################################
+
 import streamlit as st
 import sqlite3
 import pandas as pd
@@ -121,30 +146,4 @@ def get_course_enrollments() -> pd.DataFrame:
     
     return enrollments_with_exts
 
-
-def get_course_student_status_summary(
-        is_overdue, 
-        is_near_due, 
-        is_submitted) -> pd.DataFrame:
-    """
-    Returns the number of total, submissions, overdue, and pending
-    """
-
-    course_col = 'gs_course_id'
-    # name = 'shortname'
-    due_date = 'due'
-    # student_id = 'sid'
-
-    enrollments = get_course_enrollments()
-    # st.dataframe(enrollments.head(100))
-
-    useful = enrollments.rename(columns={'gs_course_id': 'gs_course_id_', 'canvas_course_id': 'canvas_course_id_'}).merge(get_courses().drop(columns=['shortname','name']),left_on='gs_course_id_', right_on='gs_course_id').rename(columns={'shortname':'Course'})
-
-    useful['😰'] = useful.apply(lambda x: is_overdue(x, x['due']), axis=1)
-    useful['😅'] = useful.apply(lambda x: is_near_due(x, x['due']), axis=1)
-    useful['✓'] = useful.apply(lambda x: is_submitted(x), axis=1)
-
-    ids_to_short = enrollments[['gs_course_id','course_name']].drop_duplicates().rename(columns={'course_name':'Course'}).set_index('gs_course_id')
-
-    return useful[[course_col,'😰','😅','✓']].groupby(course_col).sum().join(ids_to_short)[['Course','😰','😅','✓']]
 

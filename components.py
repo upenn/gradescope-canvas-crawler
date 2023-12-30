@@ -1,17 +1,41 @@
+#################################################################################
+## components.py - Streamlit components for the Penn CIS Teaching Dashboard
+##
+## Renders different views of the student status data
+##
+## Licensed to the Apache Software Foundation (ASF) under one
+## or more contributor license agreements.  See the NOTICE file
+## distributed with this work for additional information
+## regarding copyright ownership.  The ASF licenses this file
+## to you under the Apache License, Version 2.0 (the
+## "License"); you may not use this file except in compliance
+## with the License.  You may obtain a copy of the License at
+## 
+##   http://www.apache.org/licenses/LICENSE-2.0
+## 
+## Unless required by applicable law or agreed to in writing,
+## software distributed under the License is distributed on an
+## "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+## KIND, either express or implied.  See the License for the
+## specific language governing permissions and limitations
+## under the License.    
+##
+#################################################################################
+
 import streamlit as st
 from st_aggrid import AgGrid
 from st_aggrid import AgGrid, GridOptionsBuilder, ColumnsAutoSizeMode
 from st_aggrid import GridOptionsBuilder, GridUpdateMode, DataReturnMode, AgGridTheme
 import aggrid_helper
 import pandas as pd
-from datetime import datetime, timezone, timedelta
-import plotly.express as px
+from datetime import datetime
 import matplotlib.pyplot as plt
 
+from status_tests import now
 from sources import get_courses, get_assignments, get_course_enrollments, get_submissions
-from views import get_scores_in_rubric
+from views import get_scores_in_rubric, get_assignments_and_submissions
 
-from status_tests import is_overdue, is_near_due, is_submitted, now, date_format, is_below_mean, is_far_below_mean, is_far_above_mean
+from status_tests import is_overdue, is_near_due, is_submitted, is_below_mean, is_far_below_mean, is_far_above_mean
 
 
 def display_hw_status(course_name:str, assign:pd.DataFrame, due_date: datetime, df: pd.DataFrame) -> None:
@@ -22,21 +46,18 @@ def display_hw_status(course_name:str, assign:pd.DataFrame, due_date: datetime, 
     # st.write('released on %s and due on %s'%(assigned,due))
     st.write('Due on %s'%(due_date.strftime('%A, %B %d, %Y')))
 
-    col1, col2 = st.tabs(['Students','Submissions by time'])
+    # col1, col2 = st.tabs(['Students','Submissions by time'])
 
     by_time = df.copy().dropna()
     by_time['Submission Time'] = by_time['Submission Time'].apply(lambda x:pd.to_datetime(x, utc=True) if x else None)
-    # by_time['Submission Time'] = by_time['Submission Time'].apply(lambda x: 
-    #                                                                 datetime.datetime(x.year,x.month,x.day,0,0,0,0,tzinfo=timezone(offset=timedelta())) 
-    #                                                                 if x.year > 0 else None)
+
     by_time = by_time.set_index(pd.DatetimeIndex(by_time['Submission Time']))
 
-    # by_time = df.groupby('Submission Time').count().reset_index()
     by_time = by_time.groupby(pd.Grouper(freq='1D', label='right')).count()
     by_time = by_time[['Submission Time','Total Score']].rename(columns={'Submission Time': 'Day', 'Total Score':'Count'})
-    with col2:
-        # st.write("Submissions over time:")
-        st.line_chart(data=by_time,x='Day',y='Count')
+    # with col2:
+    #     # st.write("Submissions over time:")
+    #     st.line_chart(data=by_time,x='Day',y='Count')
 
     late_df = df[df.apply(lambda x: is_overdue(x, due_date), axis=1)]['email']
     late_as_list = str(late_df.to_list())[1:-2].replace('\'','').replace(' ','')
@@ -44,46 +65,46 @@ def display_hw_status(course_name:str, assign:pd.DataFrame, due_date: datetime, 
     last_minute_df = df[df.apply(lambda x: is_near_due(x, due_date), axis=1)]['email']
     last_minute_as_list = str(last_minute_df.to_list())[1:-2].replace('\'','').replace(' ','')
 
-    with col1:
+    # with col1:
         # st.write("Students and submissions:")
-        st.dataframe(df.style.format(precision=0).apply(
-            lambda x: [f"background-color:pink" 
-                        if is_overdue(x, due_date) 
-                        else f'background-color:mistyrose' 
-                            if is_near_due(x, due_date) 
-                            else 'background-color:lightgreen' if is_submitted(x) else '' for i in x],
-            axis=1), use_container_width=True,hide_index=True,
-                    column_config={
-                        'name':None,'sid':None,'cid':None,
-                        'gs_assignment_id':None,'Last Name':None,'First Name':None, 
-                        'assigned':None,'due': None,
-                        'shortname':None,
-                        # 'Sections':None,
-                        'gs_course_id': None,
-                        'gs_user_id': None,
-                        'gs_student_id': None,
-                        'canvas_sid': None,
-                        'canvas_course_id': None,
-                        'sis_course_id': None,
-                        'Total Score':st.column_config.NumberColumn(step=1,format="$%d"),
-                        'Max Points':st.column_config.NumberColumn(step=1,format="$%d"),
-                        # 'Submission Time':st.column_config.DatetimeColumn(format="D MM YY, h:mm a")
-                        })
+    st.dataframe(df.style.format(precision=0).apply(
+        lambda x: [f"background-color:pink" 
+                    if is_overdue(x, due_date) 
+                    else f'background-color:mistyrose' 
+                        if is_near_due(x, due_date) 
+                        else 'background-color:lightgreen' if is_submitted(x) else '' for i in x],
+        axis=1), use_container_width=True,hide_index=True,
+                column_config={
+                    'name':None,'sid':None,'cid':None,
+                    'gs_assignment_id':None,'Last Name':None,'First Name':None, 
+                    'assigned':None,'due': None,
+                    'shortname':None,
+                    # 'Sections':None,
+                    'gs_course_id': None,
+                    'gs_user_id': None,
+                    'gs_student_id': None,
+                    'canvas_sid': None,
+                    'canvas_course_id': None,
+                    'sis_course_id': None,
+                    'Total Score':st.column_config.NumberColumn(step=1,format="$%d"),
+                    'Max Points':st.column_config.NumberColumn(step=1,format="$%d"),
+                    # 'Submission Time':st.column_config.DatetimeColumn(format="D MM YY, h:mm a")
+                    })
         
-        if len(late_df) > 0:
-            URL_STRING = "mailto:" + late_as_list + "?subject=Late homework&body=Hi, we have not received your submission for " + assign['name'] + " for " + course_name.strip() + ". Please let us know if you need special accommodation."
+    if len(late_df) > 0 and len(late_df) < 20:
+        URL_STRING = "mailto:" + late_as_list + "?subject=Late homework&body=Hi, we have not received your submission for " + assign['name'] + " for " + course_name.strip() + ". Please let us know if you need special accommodation."
 
-            st.markdown(
-                f'<a href="{URL_STRING}" style="display: inline-block; padding: 12px 20px; background-color: #4CAF50; color: white; text-align: center; text-decoration: none; font-size: 16px; border-radius: 4px;">Email late students</a>',
-                unsafe_allow_html=True
-            )
-        if len(last_minute_df) > 0:
-            URL_STRING = "mailto:" + last_minute_as_list + "?subject=Approaching deadline&body=Hi, as a reminder, " + assign['name'] + " for " + course_name.strip() + " is nearly due. Please let us know if you need special accommodation."
+        st.markdown(
+            f'<a href="{URL_STRING}" style="display: inline-block; padding: 12px 20px; background-color: #4CAF50; color: white; text-align: center; text-decoration: none; font-size: 16px; border-radius: 4px;">Email late students</a>',
+            unsafe_allow_html=True
+        )
+    if len(last_minute_df) > 0 and len(last_minute_df) < 20:
+        URL_STRING = "mailto:" + last_minute_as_list + "?subject=Approaching deadline&body=Hi, as a reminder, " + assign['name'] + " for " + course_name.strip() + " is nearly due. Please let us know if you need special accommodation."
 
-            st.markdown(
-                f'<a href="{URL_STRING}" style="display: inline-block; padding: 12px 20px; background-color: #4CAF50; color: white; text-align: center; text-decoration: none; font-size: 16px; border-radius: 4px;">Email reminder about deadline</a>',
-                unsafe_allow_html=True
-            )
+        st.markdown(
+            f'<a href="{URL_STRING}" style="display: inline-block; padding: 12px 20px; background-color: #4CAF50; color: white; text-align: center; text-decoration: none; font-size: 16px; border-radius: 4px;">Email reminder about deadline</a>',
+            unsafe_allow_html=True
+        )
 
 def display_course(course_filter: pd.DataFrame):
     """
@@ -93,17 +114,16 @@ def display_course(course_filter: pd.DataFrame):
     """
 
     courses_df = get_courses()
-    enrollments = get_course_enrollments()
-    assignments_df = get_assignments()
-
     course = courses_df[courses_df['shortname']==course_filter].iloc[0]
-    # assigns = assignments_df[assignments_df['cid']==course['cid']].copy().dropna()
-    st.subheader("Status of %s:"%course['shortname'])
 
-    col1, col2 = st.tabs(['Status','Grading'])
+    st.write("Status of {}, {}:".format(course['shortname'], int(course['canvas_course_id'])))
+    course_num = int(course['canvas_course_id'])
+    course_name = course['name']
+
+    col1, col2, col3, col4, col5 = st.tabs(['Status','Grading','Students','Submissions','Assignments'])
 
     with col1:
-       grading_dfs = display_hw_progress(course)
+       grading_dfs = get_scores_in_rubric(display_rubric_component, course)
 
     with col2:
         courses = []
@@ -119,34 +139,19 @@ def display_course(course_filter: pd.DataFrame):
             with tabs[inx]:
                 assign_grades(this_course)
 
-        #display_hw_totals(course)
-        #display_hw_assignment_scores(course)
+    with col3:
+        display_hw_totals(course_num)
 
+    with col4:
+        display_hw_assignment_scores(course_num)
 
-    # with col2:
-    #     course_info = enrollments[enrollments['gs_course_id']==course['gs_course_id']]
-    #     assigns = course_info[['gs_assignment_id','name']].drop_duplicates()
-    #     # assigns['due'] = assigns['due'].apply(lambda x:pd.to_datetime(x) if x else None)
-    #     # assigns = assigns.sort_values('due',ascending=True)
-
-    #     for a,assign in assigns.iterrows():
-    #         df = course_info[course_info['gs_assignment_id']==assign['gs_assignment_id']].\
-    #             drop(columns=['gs_course_id','gs_assignment_id'])
-            
-    #         # assigned = list(df['assigned'].drop_duplicates())[0]
-    #         due = list(df['due'].drop_duplicates())[0]
-    #         # assigned_date = assigned#datetime.strptime(assigned, date_format)
-    #         due_date = due#datetime.strptime(due, date_format)
-
-    #         with st.container():
-    #             # Skip homework if it's not yet due!
-    #             if now < due_date:
-    #                 continue
-
-    #             display_hw_status(course['name'], assign, due_date, df)
-    #     st.divider()
+    with col5:
+        display_hws(course_name, course_num)
 
 def display_birds_eye(birds_eye_df: pd.DataFrame) -> None:
+    """
+    Bird's eye view of student progress
+    """
     overdue = 0
     pending = 0
     birds_eye_df.style.apply(
@@ -181,6 +186,10 @@ def display_birds_eye(birds_eye_df: pd.DataFrame) -> None:
         )
     
 def display_rubric_component(title: str, column: str, max_column: str, dataframe: pd.DataFrame) -> None:
+    """
+    Helper function: given a dataframe representing a component of the rubric, displays a table with color coding
+    and all students.
+    """
     st.markdown('### %s'%title)
     if column and len(dataframe):
         mean = dataframe[column].dropna().mean()
@@ -205,21 +214,18 @@ def display_rubric_component(title: str, column: str, max_column: str, dataframe
         st.dataframe(dataframe, use_container_width=True,hide_index=True)
 
 def display_hw_assignment_scores(course = None) -> None:
+    """
+    For an optionally restricted course, shows the scores for each assignment
+    """
     st.markdown('## Student Scores by Assignment')
 
-    courses = get_courses()
+    scores = get_assignments_and_submissions()
     if course is not None:
-        courses = courses[courses['cid'] == course['cid']]
+        scores = scores[scores['canvas_course_id'] == course]
 
-    scores = get_submissions().\
-        merge(get_assignments().rename(columns={'name': 'assignment'}), \
-            left_on=['course_id','assign_id'], \
-                right_on=['course_id','assignment_id']).\
-                    merge(courses.drop(columns=['name','year']).rename(columns={'shortname':'course'}), \
-                        left_on='course_id', right_on='cid')\
-                            [[#'course', 
-                              'First Name', 'Last Name', 'Email', 'assignment', 'Total Score', 'due', 'Status', 'Lateness (H:M:S)']].\
-                            sort_values(by=['due', 'Last Name', 'First Name'])
+    scores = scores\
+                [['name', 'due', 'student', 'email', 'Total Score', 'Status', 'late']].\
+                sort_values(by=['due', 'name', 'Total Score'])
 
         #melt(id_vars=['First Name', 'Last Name', 'Email', 'Sections', 'course_id', 'assign_id', 'Submission ID', 'Total Score', 'Max Points', 'Submission Time', 'Status', 'Lateness (H:M:S)']).\
 
@@ -227,6 +233,9 @@ def display_hw_assignment_scores(course = None) -> None:
 
 
 def assign_grades(grade_totals: pd.DataFrame) -> None:
+    """
+    Grading control, presents sliders for each grade threshold and displays the resulting distribution.
+    """
     thresholds = {'A+': 97, 'A': 93, 'A-': 90, 'B+': 87, 'B': 83, 'B-': 80, 'C+': 77, 'C': 73, 'C-': 70, 'D+': 67, 'D': 63, 'D-': 60, 'F': 0}
 
     prior = 100
@@ -264,22 +273,17 @@ def assign_grades(grade_totals: pd.DataFrame) -> None:
     st.dataframe(grade_totals[['student','student_id','email','Total Points','Comments','grade']].sort_values(by=['Total Points','student']), use_container_width=True,hide_index=True)
 
 
-def display_hw_totals(course = None) -> None:
-    st.markdown('## Student Aggregate Status')
+def display_hw_totals(course: int = None) -> None:
+    """
+    Aggregate status by student
+    """
+    st.markdown('## Student Aggregate Status: Points Earned')
 
-    courses = get_courses()
+    scores = get_assignments_and_submissions()
     if course is not None:
-        courses = courses[courses['cid'] == course['cid']]
-
-    scores = get_submissions().\
-        merge(get_assignments().rename(columns={'name': 'assignment'}), \
-            left_on=['course_id','assign_id'], \
-                right_on=['course_id','assignment_id']).\
-                    merge(courses.drop(columns=['name','year']).rename(columns={'shortname':'course'}), \
-                        left_on='course_id', right_on='cid')\
-                            [[#'course', 
-                              'First Name', 'Last Name', 'Email', 'assignment', 'Total Score', 'due', 'Status', 'Lateness (H:M:S)']].\
-                            groupby(by=['Email','Last Name','First Name']).sum()['Total Score'].reset_index().\
+        scores = scores[scores['canvas_course_id'] == course]
+    scores = scores.\
+                            groupby(by=['email','student']).sum()['Total Score'].reset_index().\
                             sort_values(by=['Total Score'])
 
         #melt(id_vars=['First Name', 'Last Name', 'Email', 'Sections', 'course_id', 'assign_id', 'Submission ID', 'Total Score', 'Max Points', 'Submission Time', 'Status', 'Lateness (H:M:S)']).\
@@ -312,5 +316,24 @@ def display_hw_totals(course = None) -> None:
                     })
 
 
-def display_hw_progress(course = None) -> list[pd.DataFrame]:
-    return get_scores_in_rubric(display_rubric_component, course)
+def display_hws(course_name: str, course: int = None):
+    scores = get_assignments_and_submissions()
+    if course is not None:
+        scores = scores[scores['canvas_course_id'] == course]
+
+        assigns = scores[['gs_assignment_id','name','due']].drop_duplicates()
+
+        for a,assign in assigns.iterrows():
+            df = scores[scores['gs_assignment_id']==assign['gs_assignment_id']]
+
+            if len(df):
+                due = list(df['due'].drop_duplicates())[0]
+                due_date = due
+
+                with st.container():
+                    # Skip homework if it's not yet due!
+                    if now < due_date:
+                        continue
+
+                display_hw_status(course_name, assign, due_date, df)
+        st.divider()
