@@ -167,10 +167,12 @@ def display_rubric_component(title: str, column: str, max_column: str, dataframe
     if column and len(dataframe):
         mean = dataframe[column].dropna().mean()
         overall_max = dataframe[max_column].dropna().max()
-        # overall_max  = dataframe[column].dropna().max()
-        if not pd.isna(mean):
-            st.write('Mean: {}'.format(mean))
-        if not pd.isna(overall_max):
+
+        if not pd.isna(mean) and not pd.isna(overall_max):
+            st.write('Mean: {:.2f}, Max: {}'.format(mean, overall_max))
+        elif not pd.isna(mean):
+            st.write('Mean: {:.2f}'.format(mean))
+        elif not pd.isna(overall_max):
             st.write('Max: {}'.format(overall_max))
         st.dataframe(dataframe.style.format(precision=0).apply(
             lambda x: [f"background-color:pink" 

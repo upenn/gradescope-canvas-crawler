@@ -53,11 +53,20 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> pd.DataFr
             for group in config['rubric'][course_id]:
                 # the_course = courses[courses['gs_course_id'] == course['gs_course_id']]
                 the_course = scores[scores['gs_course_id'] == course['gs_course_id']]
+
+                # st.dataframe(the_course)
                 
                 # st.dataframe(scores)
 
-                assigns = the_course[the_course['name'].apply(lambda x: config['rubric'][course_id][group]['substring'] in x)]\
-                        .groupby(by=['student', 'email']).\
+                # The subset we want -- just those matching the substring
+                assigns = the_course[the_course['name'].apply(lambda x: config['rubric'][course_id][group]['substring'] in x)]
+
+                # If we have filtered to one source (Gradescope or Canvas), make sure we eliminate any others
+                if 'source' in config['rubric'][course_id][group]:
+                    assigns = assigns[assigns['source'] == config['rubric'][course_id][group]['source']]
+                
+                # Now we want to group by student and email, and sum up all assignments in this group
+                assigns = assigns.groupby(by=['student', 'email']).\
                         sum().reset_index()\
                         [['student', 'Total Score', "Max Points", 'email']]
                 
@@ -68,7 +77,6 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> pd.DataFr
                     assigns['Total Score'] = assigns.apply(lambda x: cap_points(x, config['rubric'][course_id][group]), axis=1)
 
                     students = students.merge(assigns[['email', 'Total Score', 'Max Points']].rename(columns={'Total Score': group, 'Max Points': group + '_max'}), left_on='email', right_on='email', how='left')
-                    # .drop(columns=['email_y']).rename(columns={'email_x': 'email'})
                 else:
                     students[group] = None
                     students[group + '_max'] = None
@@ -84,10 +92,23 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> pd.DataFr
                 group_name = group[0].upper() + group[1:]
                 if group_name[-1] >= '0' and group_name[-1] <= '9':
                     group_name = group_name[0:-1] + ' ' + group_name[-1]
-                output(group_name, 'Total Score', 'Max Points', assigns.drop(columns=['email']))
+
+                if 'source' in config['rubric'][course_id][group]:
+                    output("{} ({})".format(group_name, config['rubric'][course_id][group]["source"]), 'Total Score', 'Max Points', assigns.drop(columns=['email']))
+                else:
+                    output(group_name, 'Total Score', 'Max Points', assigns.drop(columns=['email']))
 
                 # TODO: scale and sum the points
 
             students['Total Points'] = students.apply(lambda x: sum_scaled(x, sums, [s + "_max" for s in sums], scales), axis=1)
             students['Max Points'] = students.apply(lambda x: sum_scaled(x, [s + "_max" for s in sums], [s + "_max" for s in sums], scales), axis=1)
             output('Total', 'Total Points', 'Max Points', students)
+
+            grading = {}
+            for col in students.columns:
+                if not '_max' in col and not 'course_id' in col and col != 'gs_user_id':
+                    grading[col] = students[col].values.tolist()
+
+            grading_df = pd.DataFrame(grading)
+
+            output('Grading', 'Total Points', 'Max Points', grading_df)

@@ -122,14 +122,14 @@ def get_aligned_submissions(include_gs: bool, include_canvas: bool) -> pd.DataFr
                                                [Submission ID] as gs_submission_id, null as canvas_submission_id, [Submission Time], null as submitted_at, due,
                                                st.student_id, assign_id as gs_assignment_id, null as canvas_assignment_id, gsa.name,
                                                st.sid as gs_student_id, user_id as gs_user_id,gs.course_id as gs_course_id,gsc.lti as canvas_course_id, 
-                                               case when gs.[Lateness (H:M:S)] > "00:00:00" then true else false end as late, 0 as points_deducted, gsc.shortname as course_name
+                                               case when gs.[Lateness (H:M:S)] > "00:00:00" then true else false end as late, 0 as points_deducted, gsc.shortname as course_name, "Gradescope" as source
                                                from gs_submissions gs left join gs_students st on gs.SID = st.student_id left join gs_courses gsc on gs.course_id=gsc.cid left join gs_assignments gsa on gs.assign_id = gsa.id
                                               union
                                                 select st.name as student, st.email, score as [Total Score], a.points_possible as [Max Points], 
                                                case when graded_at is not null then "Graded" when submitted_at is not null then "Submitted" else "Missing" end as Status, 
                                                null as gs_submission_id, s.id as canvas_submission_id, null as [Submission Time], submitted_at, a.due_at as due,
                                                sis_user_id as student_id, null as gs_assignment_id, assignment_id as canvas_assignment_id, a.name, gst.sid as gs_student_id, 
-                                               gst.user_id as gs_user_id, gsc.cid as gs_course_id,a.course_id as canvas_course_id, late, points_deducted, gsc.shortname as course_name
+                                               gst.user_id as gs_user_id, gsc.cid as gs_course_id,a.course_id as canvas_course_id, late, points_deducted, gsc.shortname as course_name, "Canvas" as source
                                                from canvas_submissions s join canvas_students st on s.user_id = st.id join canvas_assignments a on s.assignment_id = a.id 
                                                left join gs_students gst on gst.student_id = sis_user_id left join gs_courses gsc on gsc.lti = a.course_id
                                                """), con=connection)
@@ -140,7 +140,7 @@ def get_aligned_submissions(include_gs: bool, include_canvas: bool) -> pd.DataFr
                                                [Submission ID] as gs_submission_id, null as canvas_submission_id, [Submission Time], null as submitted_at, due,
                                                st.student_id, assign_id as gs_assignment_id, null as canvas_assignment_id, gsa.name,
                                                st.sid as gs_student_id, user_id as gs_user_id,gs.course_id as gs_course_id,gsc.lti as canvas_course_id, 
-                                               case when gs.[Lateness (H:M:S)] > "00:00:00" then true else false end as late, 0 as points_deducted, gsc.shortname as course_name
+                                               case when gs.[Lateness (H:M:S)] > "00:00:00" then true else false end as late, 0 as points_deducted, gsc.shortname as course_name, "Gradescope" as source
                                                from gs_submissions gs left join gs_students st on gs.SID = st.student_id left join gs_courses gsc on gs.course_id=gsc.cid left join gs_assignments gsa on gs.assign_id = gsa.id
                                     """), con=connection)
         else:
@@ -150,7 +150,7 @@ def get_aligned_submissions(include_gs: bool, include_canvas: bool) -> pd.DataFr
                                                case when graded_at is not null then "Graded" when submitted_at is not null then "Submitted" else "Missing" end as Status, 
                                                null as gs_submission_id, s.id as canvas_submission_id, null as [Submission Time], submitted_at, a.due_at as due,
                                                sis_user_id as student_id, null as gs_assignment_id, assignment_id as canvas_assignment_id, a.name, null as gs_student_id, null as gs_user_id, 
-                                               null as gs_course_id, a.course_id as canvas_course_id, late, points_deducted, canvas_name as course_name
+                                               null as gs_course_id, a.course_id as canvas_course_id, late, points_deducted, canvas_name as course_name, "Canvas" as source
                                                from canvas_submissions s join canvas_students st on s.user_id = st.id join canvas_assignments a on s.assignment_id = a.id"""), con=connection)
 
         submissions['Submission Time'] = submissions.apply(lambda x: datetime.strptime(x['submitted_at'], "%Y-%m-%dT%H:%M:%SZ") if not pd.isna(x['submitted_at']) else datetime.strptime(x['Submission Time'], '%Y-%m-%d %H:%M:%S %z') if not pd.isna(x['Submission Time']) else pd.NaT, axis=1)
