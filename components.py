@@ -100,22 +100,24 @@ def display_course(course_filter: pd.DataFrame):
     # assigns = assignments_df[assignments_df['cid']==course['cid']].copy().dropna()
     st.subheader("Status of %s:"%course['shortname'])
 
-    # col1, col2 = st.tabs(['Totals','Detailed'])
+    col1, col2 = st.tabs(['Status','Grading'])
 
-    grading_dfs = display_hw_progress(course)
+    with col1:
+       grading_dfs = display_hw_progress(course)
 
-    courses = []
-    for course_sheet in grading_dfs:
-        if len(course_sheet):
-            courses.append(course_sheet.iloc[0]['canvas_sid'])
+    with col2:
+        courses = []
+        for course_sheet in grading_dfs:
+            if len(course_sheet):
+                courses.append(course_sheet.iloc[0]['canvas_sid'])
 
-    tabs = st.tabs([str(int(x)) for x in courses])
+        tabs = st.tabs([str(int(x)) for x in courses])
 
-    for inx, course in enumerate(courses):
-        this_course = grading_dfs[inx]
+        for inx, course in enumerate(courses):
+            this_course = grading_dfs[inx]
 
-        with tabs[inx]:
-            assign_grades(this_course)
+            with tabs[inx]:
+                assign_grades(this_course)
 
         #display_hw_totals(course)
         #display_hw_assignment_scores(course)
@@ -233,6 +235,9 @@ def assign_grades(grade_totals: pd.DataFrame) -> None:
         # prior = thresholds[grade]
 
     grade_totals['grade'] = ''
+    if "Comments" in grade_totals.columns:
+        grade_totals['grade'] = grade_totals.apply(lambda x: "I" if not pd.isna(x['Comments']) and "incomplete" in x['Comments'].lower() else '', axis=1)
+
     ## This is taking advantage of Python's ordered dictionaries
     for grade in thresholds:
         # grade_totals[grade] = grade_totals['Total Score'].apply(lambda x: 1 if x >= thresholds[grade] else 0)
@@ -247,16 +252,16 @@ def assign_grades(grade_totals: pd.DataFrame) -> None:
     plt.xlabel("(Proposed) Letter Grade")
     plt.title("Grade distribution")
 
-    for grade in ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F']:
+    for grade in ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F', "I"]:
         if grade not in distrib:
             distrib[grade] = 0
-    distrib = distrib[['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F']]
+    distrib = distrib[['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F', "I"]]
     bars = ax.bar(distrib.index, distrib)#['Total Points'])
     ax.bar_label(bars)
     fig.show()
 
     st.pyplot(fig)
-    st.dataframe(grade_totals[['student','student_id','email','Total Points','grade']].sort_values(by=['Total Points','student']), use_container_width=True,hide_index=True)
+    st.dataframe(grade_totals[['student','student_id','email','Total Points','Comments','grade']].sort_values(by=['Total Points','student']), use_container_width=True,hide_index=True)
 
 
 def display_hw_totals(course = None) -> None:

@@ -107,7 +107,7 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.D
                 
                 students = students.merge(more_fields, left_on='student_id', right_on='SID', how='left').drop('SID', axis=1)
                 for field in more_fields.columns:
-                    if field != 'SID':
+                    if field != 'SID' and field != 'Comments':
                         sums.append(field)
                         students[field + '_max'] = max(students[field])
                         scales.append(max(students[field]))
