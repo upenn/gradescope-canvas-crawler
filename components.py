@@ -5,6 +5,8 @@ from st_aggrid import GridOptionsBuilder, GridUpdateMode, DataReturnMode, AgGrid
 import aggrid_helper
 import pandas as pd
 from datetime import datetime, timezone, timedelta
+import plotly.express as px
+import matplotlib.pyplot as plt
 
 from sources import get_courses, get_assignments, get_course_enrollments, get_submissions
 from views import get_scores_in_rubric
@@ -100,7 +102,21 @@ def display_course(course_filter: pd.DataFrame):
 
     # col1, col2 = st.tabs(['Totals','Detailed'])
 
-    display_hw_progress(course)
+    grading_dfs = display_hw_progress(course)
+
+    courses = []
+    for course_sheet in grading_dfs:
+        if len(course_sheet):
+            courses.append(course_sheet.iloc[0]['canvas_sid'])
+
+    tabs = st.tabs([str(int(x)) for x in courses])
+
+    for inx, course in enumerate(courses):
+        this_course = grading_dfs[inx]
+
+        with tabs[inx]:
+            assign_grades(this_course)
+
         #display_hw_totals(course)
         #display_hw_assignment_scores(course)
 
@@ -207,6 +223,42 @@ def display_hw_assignment_scores(course = None) -> None:
 
     st.dataframe(scores)
 
+
+def assign_grades(grade_totals: pd.DataFrame) -> None:
+    thresholds = {'A+': 97, 'A': 93, 'A-': 90, 'B+': 87, 'B': 83, 'B-': 80, 'C+': 77, 'C': 73, 'C-': 70, 'D+': 67, 'D': 63, 'D-': 60, 'F': 0}
+
+    prior = 100
+    for grade in thresholds:
+        thresholds[grade] = st.slider("Threshold for {}".format(grade), 0, prior, thresholds[grade])
+        # prior = thresholds[grade]
+
+    grade_totals['grade'] = ''
+    ## This is taking advantage of Python's ordered dictionaries
+    for grade in thresholds:
+        # grade_totals[grade] = grade_totals['Total Score'].apply(lambda x: 1 if x >= thresholds[grade] else 0)
+        # st.write("Assessing {} grades".format(grade))
+        grade_totals['grade'] = grade_totals.apply\
+            (lambda x: x['grade'] if not pd.isna(x['grade']) and len(x['grade']) > 0 \
+             else grade if x['Total Points'] >= thresholds[grade] else '', axis=1)
+
+    distrib = grade_totals.groupby('grade').count()['Total Points']#.reset_index()
+    fig, ax = plt.subplots()
+    plt.ylabel('Number of students')
+    plt.xlabel("(Proposed) Letter Grade")
+    plt.title("Grade distribution")
+
+    for grade in ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F']:
+        if grade not in distrib:
+            distrib[grade] = 0
+    distrib = distrib[['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F']]
+    bars = ax.bar(distrib.index, distrib)#['Total Points'])
+    ax.bar_label(bars)
+    fig.show()
+
+    st.pyplot(fig)
+    st.dataframe(grade_totals[['student','student_id','email','Total Points','grade']].sort_values(by=['Total Points','student']), use_container_width=True,hide_index=True)
+
+
 def display_hw_totals(course = None) -> None:
     st.markdown('## Student Aggregate Status')
 
@@ -255,5 +307,5 @@ def display_hw_totals(course = None) -> None:
                     })
 
 
-def display_hw_progress(course = None) -> None:
-    get_scores_in_rubric(display_rubric_component, course)
+def display_hw_progress(course = None) -> list[pd.DataFrame]:
+    return get_scores_in_rubric(display_rubric_component, course)

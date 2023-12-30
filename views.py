@@ -35,11 +35,12 @@ def sum_scaled(x, sums, maxes, scales):
             total += x[sums[i]] * float(scales[i]) / float(x[maxes[i]])
     return total
 
-def get_scores_in_rubric(output: callable, course:pd.Series = None) -> pd.DataFrame:
+def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.DataFrame]:
     courses = get_courses()
     if course is not None:
         courses = courses[courses['gs_course_id'] == course['gs_course_id']]
 
+    grading_dfs = []
     for inx, course in courses.drop_duplicates().iterrows():
         # TODO: late??
         course_id = int(course['canvas_course_id'])
@@ -125,3 +126,7 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> pd.DataFr
             grading_df = pd.DataFrame(grading)
 
             output('Grading', 'Total Points', 'Max Points', grading_df)
+
+            grading_dfs.append(grading_df)
+
+    return grading_dfs
