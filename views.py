@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import yaml
+import sys
+from os import path
 
 from sources import get_students, get_courses, get_assignments, get_submissions, get_assignments_and_submissions
 
@@ -98,8 +100,19 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> pd.DataFr
                 else:
                     output(group_name, 'Total Score', 'Max Points', assigns.drop(columns=['email']))
 
-                # TODO: scale and sum the points
+            if path.isfile('more-fields-{}.xlsx'.format(course_id)):
+                st.markdown ("## Additional Fields from Excel")
+                more_fields = pd.read_excel('more-fields-{}.xlsx'.format(course_id)).drop(columns=['First Name', 'Last Name','Email'])
+                
+                students = students.merge(more_fields, left_on='student_id', right_on='SID', how='left').drop('SID', axis=1)
+                for field in more_fields.columns:
+                    if field != 'SID':
+                        sums.append(field)
+                        students[field + '_max'] = max(students[field])
+                        scales.append(max(students[field]))
+                st.write('Adding {}'.format(more_fields.columns.to_list()))
 
+            # scale and sum the points
             students['Total Points'] = students.apply(lambda x: sum_scaled(x, sums, [s + "_max" for s in sums], scales), axis=1)
             students['Max Points'] = students.apply(lambda x: sum_scaled(x, [s + "_max" for s in sums], [s + "_max" for s in sums], scales), axis=1)
             output('Total', 'Total Points', 'Max Points', students)

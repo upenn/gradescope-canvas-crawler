@@ -85,6 +85,9 @@ Next we have a series of blocks representing different rubric components.  You c
 
 * `max_extra_credit` (optional). If students are allowed to exceed the `max_score`, do we threshold the extra credit? Default: no threshold.
 
+**Supplemental Fields**.
+You may also add *supplemental fields* to the rubric, e.g., for course participation, late penalties, etc.  These should be in an Excel spreadsheet called `more-fields-{canvas_SIS_number}.xlsx`, along with student info from Gradescope (First Name, Last Name, SID, Email).  A template is provided as *more-fields-1234.xlsx* and you may copy it to your course number. It's suggested you download the Gradescope grade file and copy the leftmost few fields directly into this sheet.
+
 ## Running the Dashboard
 
 On a daily basis, you should run the crawler tool to generate a fresh version of your course data (perhaps through `chron`):
@@ -101,7 +104,6 @@ streamlit run dashboard.py
 
 
 ## Potential To-Dos:
-* Add support for external CSVs, e.g., for participation.
 * Add auto late penalties in the system.
 * Add download from Gradescope Review Similarity for each assignment?
 * Generate ics for all deadlines?
@@ -114,7 +116,7 @@ We leverage and adapt the `pyscope` API, which we have updated to 2023 Gradescop
 
 However, new subsystems developed as part of this project use the standard Apache 2 license.
 
-**Major changes**:
+**Major enhancements to gradescope-ics**:
 * Support for extracting courses for which we have either *instructor* or *student* access.  Instructor access has more comprehensive support, e.g., of downloading rosters.
 * Instructor access uses the full **assignments** page rather than the main dashboard, for comprehensiveness.  This requires changes to parsing.
 * New `course.get_roster()` API call.
