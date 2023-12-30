@@ -1,12 +1,17 @@
 # Gradescope-Canvas Dashboard
 
-The [Computer and Information Science Department at Penn](https://www.cis.upenn.edu/) is building cross-departmental monitoring tools to help with advising and student support.
+![Logo](https://www.seas.upenn.edu/wp-content/uploads/2017/08/penn_logo.png)
+
+Welcome to the Penn [Computer and Information Science Department](https://www.cis.upenn.edu/) Teaching Dashboard!  This project develops a *data dashboard* and grading platform for courses that combine Canvas and Gradescope components.  It has two roles:
+
+* Continuous monitoring of student progress (including missed deadlines and low scores).
+* Grade assessment across different components.
 
 Our goal is a single aggregation point for tracking student progress (and triggering alarms as appropriate) across many courses.  Ultimately there will be both "pull" and "push" components (messages vs dashboard).
 
-We pull from both the Gradescope and Canvas APIs.
-
 ![Dashboard](dashboard-screenshot.png)
+
+We pull from both the Gradescope and Canvas APIs.  This has required substantial development to find and leverage the "hooks" between the two systems.  In addition, various mechanisms have been implemented to allow the grades in one system (e.g., Gradescope) override the (potentially partly synced) grades in the other system.
 
 ## Getting Started
 
@@ -43,7 +48,44 @@ After the script runs, there should be a series of files in the `data` directory
 * `gs_extensions.csv` / `canvas_student_summaries.csv`: list of student info including late days, extensions, etc.
 * `gs_submissions.csv` / `canvas_submissions.csv`: list of homework submissions including timestamps, whether late, etc.
 
-## Usage
+However, the Data Dashboard now operates out of a SQLite3 database instance, in the form of the file `dashboard.py`.
+
+## Rubrics
+
+To get a birds-eye view of progress, you may want to set up a *grading rubric* in your `config.yaml` file.  Towards the end of the sample file you should see something like this:
+
+```
+rubric:
+  1234:
+    midterm1:
+      substring: Midterm 1
+      points: 15
+      max_score: 80
+      max_extra_credit: 0
+      source: Gradescope
+    quizzes:
+      substring: review
+      points: 7
+      max_score: 210
+      max_extra_credit: 0
+      source: Canvas
+```
+
+The first key (`1234`) represents the *Canvas SIS Number* for your course.  You can easily get this by logging into your course Canvas site and looking at the number at the end of the URL.
+
+Next we have a series of blocks representing different rubric components.  You can name each key as you prefer; each will show up as a score component table and as a column in the student scores.  There are several important keys to specify:
+
+* `substring`.  The Dashboard will collect every Assignment in Gradescope and in Canvas.  Anything which has a name matching the `substring` will be considered part of this rubric item.
+
+* `source` (optional).  Sometimes Canvas and Gradescope will be partly synced. You can limit your rubric item to only consider `Canvas` entries or only consider `Gradescope` entries. By default it considers any source.
+
+* `points`. How many points in your final rubric (e.g., percentage points) is this item worth?
+
+* `max_score` (optional). Sometimes you will allow for extra credit or other items.  The `max_score` represents the baseline for 100% credit. Default: the maximum score comes from the Gradescope or Canvas entry.
+
+* `max_extra_credit` (optional). If students are allowed to exceed the `max_score`, do we threshold the extra credit? Default: no threshold.
+
+## Running the Dashboard
 
 On a daily basis, you should run the crawler tool to generate a fresh version of your course data (perhaps through `chron`):
 
@@ -58,44 +100,26 @@ streamlit run dashboard.py
 ```
 
 
-## API Alternative
-
-Alternatively, you can use the libraries directly:
-
-```
-import pandas as pd
-from gscdash.pycanvas.pycanvas import CanvasStatus
-from gscdash.pyscope.pyscope import GradescopeStatus
-
-# Restrict to these course IDs
-canvas_course_list = []
-
-# Restrict to these semesters
-gradescope_sem_list = []
-
-canvas = CanvasStatus(canvas_url, canvas_api_key, canvas_course_list)
-canvas_courses, all_students, all_assignments, all_submissions, all_student_summaries = canvas.get_course_info()
-
-gs = GradescopeStatus(email, pwd, gradescope_sem_list)
-gs_courses, gs_students, gs_assignments, gs_submissions, gs_extensions = gs.get_course_info()
-
-```
-
 ## Potential To-Dos:
+* Add support for external CSVs, e.g., for participation.
+* Add auto late penalties in the system.
 * Add download from Gradescope Review Similarity for each assignment?
 * Generate ics for all deadlines?
 
 ## Gradescope APIs
 
-We leverage and adapt the `pyscope` API, which we have updated to 2023 Gradescope with extensions.  Gradescope does not really have an external API, but through some clever work by prior authors, HTML crawling is used to pull the important data and wrap it in objects.
+We leverage and adapt the `pyscope` API, which we have updated to 2023 Gradescope with extensions.  Gradescope does not really have an external API, but through some clever work by prior authors, HTML crawling is used to pull the important data and wrap it in objects.  Substantial additional work was done to link every Gradescope student to their underlying SIS user ID.
 
-**Credit**: The `pyscope` codebase is derived from Sagar Reddy Patil's Gradescope iCalendar Converter, [sagarredypatil/gradescope-ics](https://github.com/sagarredypatil/gradescope-ics), which also leverages the original Gradescope codebase from Anton Pozharski, [apozharski/gradescope-api](https://github.com/apozharski/gradescope-api).  This overall package inherits the AGPL license as a result of this.  However, new subsystems use the standard Apache 2 license.
+**Credit**: The original `pyscope` codebase is derived from Sagar Reddy Patil's Gradescope iCalendar Converter, [sagarredypatil/gradescope-ics](https://github.com/sagarredypatil/gradescope-ics). In turn this leverages a Gradescope extraction codebase from Anton Pozharski, [apozharski/gradescope-api](https://github.com/apozharski/gradescope-api).  This overall package inherits the AGPL license as a result of this.
+
+However, new subsystems developed as part of this project use the standard Apache 2 license.
 
 **Major changes**:
 * Support for extracting courses for which we have either *instructor* or *student* access.  Instructor access has more comprehensive support, e.g., of downloading rosters.
 * Instructor access uses the full **assignments** page rather than the main dashboard, for comprehensiveness.  This requires changes to parsing.
 * New `course.get_roster()` API call.
 * Roster extraction update to match the 2023 HTML formatting of Gradescope.
+* Crawl roster settings to get student SIS IDs.
 * Homework assignment extraction now pulls the assignment ID.
 * Extraction of homework submissions.
 * Extraction of homework extensions.
