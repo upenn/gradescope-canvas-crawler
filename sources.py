@@ -9,7 +9,7 @@ from data import include_canvas_data, include_gradescope_data
 from data import get_canvas_students, get_gs_students, get_gs_courses, get_canvas_courses
 from data import get_gs_assignments, get_canvas_assignments, get_gs_submissions, get_canvas_submissions
 from data import get_gs_extensions, get_canvas_extensions, get_aligned_courses, get_aligned_students
-from data import get_aligned_assignments
+from data import get_aligned_assignments, get_aligned_submissions
 
 timezone = datetime.now().astimezone().tzinfo
 # offset = timezone.utcoffset(datetime.now())
@@ -32,32 +32,7 @@ def get_assignments() -> pd.DataFrame:
 
 @st.cache_data
 def get_submissions(do_all = False) -> pd.DataFrame:
-    # SID is useless because it is the Penn student ID *but can be null*
-    gs_sub = get_gs_submissions()\
-        [['Email','Total Score','Max Points','Status','Submission ID','Submission Time','Lateness (H:M:S)','course_id','Sections','assign_id']].\
-        rename(columns={'assign_id': 'gs_assign_id_', 'course_id': 'gs_course_id_'})
-    
-    gs_sub = gs_sub.merge(get_students(), left_on=['Email','gs_course_id_'], 
-                          right_on=['email', 'gs_course_id']).\
-        drop(columns=['Email', 'gs_course_id_','Sections']).rename(columns={'canvas_sid': 'canvas_user_id'})
-    
-    canvas_sub = get_canvas_submissions().\
-        rename(columns={'id': 'canvas_sub_id', 'assignment_id': 'canvas_assign_id_', 'user_id': 'canvas_user_id', 'submitted_at': 'Submission Time', 'score': 'Total Score'})
-    
-    canvas_sub['Status'] = canvas_sub.apply(lambda x: "Missing" if x['missing'] else 'Graded' if not pd.isna(x['graded_at']) else 'Ungraded', axis=1)
-
-    ## It looks like late_policy_status == 'none' or 'late' but late is also a bit set
-    
-    canvas_sub = canvas_sub.merge(get_students(), left_on=['canvas_user_id'],\
-                                  right_on=['canvas_sid']).drop(columns=['canvas_sid', 'course_id', 'graded_at', 'grader_id', 'grade', 'entered_grade', 'entered_score', 'missing', 'excused', 'late_policy_status'])
-
-
-    ## TODO: get Max Points by joining with the Canvas Assignment and getting its canvas_max_points
-    canvas_sub = canvas_sub.merge(get_assignments()[['canvas_assignment_id', 'canvas_max_points', 'canvas_course_id']], left_on=['canvas_assign_id_'], right_on=['canvas_assignment_id']).drop(columns='canvas_assign_id_').\
-    rename(columns={'canvas_max_points': 'Max Points'})
-
-    ret = pd.concat([gs_sub, canvas_sub])
-    return ret
+    return get_aligned_submissions(include_gradescope_data, include_canvas_data)
 
 @st.cache_data
 def get_extensions() -> pd.DataFrame:
@@ -96,34 +71,17 @@ def get_assignments_and_submissions(courses_df: pd.DataFrame, assignments_df: pd
     # st.dataframe(get_students())
     # st.write('Assignments')
     # st.dataframe(get_assignments())
-    st.write('Submissions')
-    st.dataframe(get_submissions())
+    # st.write('Submissions')
+    # st.dataframe(get_submissions())
 
-    gs_sub = assignments_df.drop(columns=['canvas_course_id', 'canvas_assignment_id']).\
-        merge(submissions_df.rename(columns={'gs_course_id':'gs_course_id_'}), left_on=['gs_assignment_id','gs_course_id'], right_on=['gs_assign_id_','gs_course_id_']).\
-        drop(columns=['gs_course_id']).\
-        merge(courses_df[['gs_course_id','name','sis_course_id']].rename(columns={'name': 'course_name'}),left_on='gs_course_id_', right_on='gs_course_id').\
-        drop(columns=['gs_course_id_','gs_assign_id_','canvas_max_points'])
-    
-    # gs_sub['Email'] = gs_sub['email']
-
-    # st.dataframe(gs_sub.head(100))
-
-    # canvas_sub = assignments_df.rename(columns={'name':'assignment'}).\
-    #     merge(submissions_df, left_on=['assignment_id','canvas_course_id'], right_on=['assign_id','course_id']).\
-    #     merge(courses_df,left_on='course_id', right_on='cid').drop(columns=['canvas_course_id','course_id'])
-
-    return gs_sub#, canvas_sub])
-# assignments_df.rename(columns={'name':'assignment'}).\
-#         merge(submissions_df, left_on=['assignment_id','canvas_course_id'], right_on=['assign_id','course_id']).\
-#         merge(courses_df,left_on='course_id', right_on='cid').drop(columns=['canvas_course_id','course_id'])
+    return get_submissions()
 
 
 def get_course_names():
     """
     Retrieve the (short) name of every course
     """
-    return get_courses().drop_duplicates().rename(columns={'shortname':'Course'}).set_index('gs_course_id')[['Course']].dropna()
+    return get_courses().rename(columns={'shortname':'Course'}).set_index('gs_course_id')[['Course']].dropna()
 
 @st.cache_data
 def get_course_enrollments() -> pd.DataFrame:
@@ -132,17 +90,28 @@ def get_course_enrollments() -> pd.DataFrame:
     """
     enrollments = get_assignments_and_submissions(get_courses(), get_assignments(), get_submissions())
 
+    enrollments_no_gs = enrollments[enrollments['gs_assignment_id'].apply(lambda x: pd.isna(x))]
+    enrollments_gs = enrollments[enrollments['gs_assignment_id'].apply(lambda x: not pd.isna(x))].dropna(subset=['gs_user_id'])
+
+    # st.dataframe(enrollments_gs.head(100))
+    # st.dataframe(enrollments_no_gs.head(100))
+
     # print(enrollments.dtypes)
-    enrollments = enrollments.astype({'gs_user_id': int})
+    enrollments_gs = enrollments_gs.astype({'gs_user_id': int, 'gs_course_id': int, 'gs_assignment_id': int})
     # st.write('Enrollments')
     # st.dataframe(enrollments.head(5000))
     # print(get_extensions().dtypes)
-    enrollments_with_exts = enrollments.\
+    enrollments_with_exts = enrollments_gs.\
         merge(get_extensions(), left_on=['gs_user_id','gs_assignment_id','gs_course_id'], right_on=['gs_user_id_','gs_assign_id_','gs_course_id_'], how='left').\
         drop(columns=['gs_course_id_','gs_assign_id_','gs_user_id_'])
-    
+
+    # print(enrollments_with_exts.dtypes)
+
+
     enrollments_with_exts.apply(lambda x: x['due'] if pd.isna(x['Due']) else x['Due'], axis=1)
     enrollments_with_exts.drop(columns=['Due','Late'], inplace=True)
+
+    enrollments_with_exts = pd.concat([enrollments_with_exts, enrollments_no_gs])
 
     # st.write("With extensions")
     # st.dataframe(enrollments_with_exts.head(5000))

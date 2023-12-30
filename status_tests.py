@@ -3,7 +3,7 @@ import pandas as pd
 
 ####
 ## Reference time, in our time zone
-now = datetime.now()
+now = datetime.now(timezone.utc)
 date_format = '%Y-%m-%d %H:%M:%S'
 timezone = datetime.now().astimezone().tzinfo
 due_date = 'due'# ({})'.format(timezone)

@@ -92,42 +92,41 @@ def display_course(course_filter: pd.DataFrame):
 
     courses_df = get_courses()
     enrollments = get_course_enrollments()
-    # assignments_df = get_assignments()
+    assignments_df = get_assignments()
 
     course = courses_df[courses_df['shortname']==course_filter].iloc[0]
     # assigns = assignments_df[assignments_df['cid']==course['cid']].copy().dropna()
     st.subheader("Status of %s:"%course['shortname'])
 
-    col1, col2 = st.tabs(['Totals','Detailed'])
+    # col1, col2 = st.tabs(['Totals','Detailed'])
 
-    with col1:
-        display_hw_progress(course)
+    display_hw_progress(course)
         #display_hw_totals(course)
         #display_hw_assignment_scores(course)
 
 
-    with col2:
-        course_info = enrollments[enrollments['gs_course_id']==course['gs_course_id']]
-        assigns = course_info[['gs_assignment_id','name']].drop_duplicates()
-        # assigns['due'] = assigns['due'].apply(lambda x:pd.to_datetime(x) if x else None)
-        # assigns = assigns.sort_values('due',ascending=True)
+    # with col2:
+    #     course_info = enrollments[enrollments['gs_course_id']==course['gs_course_id']]
+    #     assigns = course_info[['gs_assignment_id','name']].drop_duplicates()
+    #     # assigns['due'] = assigns['due'].apply(lambda x:pd.to_datetime(x) if x else None)
+    #     # assigns = assigns.sort_values('due',ascending=True)
 
-        for a,assign in assigns.iterrows():
-            df = course_info[course_info['gs_assignment_id']==assign['gs_assignment_id']].\
-                drop(columns=['gs_course_id','gs_assignment_id'])
+    #     for a,assign in assigns.iterrows():
+    #         df = course_info[course_info['gs_assignment_id']==assign['gs_assignment_id']].\
+    #             drop(columns=['gs_course_id','gs_assignment_id'])
             
-            assigned = list(df['assigned'].drop_duplicates())[0]
-            due = list(df['due'].drop_duplicates())[0]
-            assigned_date = assigned#datetime.strptime(assigned, date_format)
-            due_date = due#datetime.strptime(due, date_format)
+    #         # assigned = list(df['assigned'].drop_duplicates())[0]
+    #         due = list(df['due'].drop_duplicates())[0]
+    #         # assigned_date = assigned#datetime.strptime(assigned, date_format)
+    #         due_date = due#datetime.strptime(due, date_format)
 
-            with st.container():
-                # Skip homework if it's not yet assigned!
-                if now < assigned_date:
-                    continue
+    #         with st.container():
+    #             # Skip homework if it's not yet due!
+    #             if now < due_date:
+    #                 continue
 
-                display_hw_status(course['name'], assign, due_date, df)
-        st.divider()
+    #             display_hw_status(course['name'], assign, due_date, df)
+    #     st.divider()
 
 def display_birds_eye(birds_eye_df: pd.DataFrame) -> None:
     overdue = 0
