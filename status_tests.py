@@ -31,7 +31,7 @@ def is_submitted(x: pd.Series):
 def is_below_mean(x: pd.Series, mean: float, total = None):
     if total is None:
         total = 'Total Score'
-    return x[total] < mean
+    return x[total] < mean*0.9
 
 def is_far_below_mean(x: pd.Series, mean: float, total = None):
     if total is None:
@@ -42,7 +42,7 @@ def is_far_below_mean(x: pd.Series, mean: float, total = None):
 def is_far_above_mean(x: pd.Series, max, mean: float, total = None):
     if total is None:
         total = 'Total Score'
-    return x[total] >= max * 0.9
+    return x[total] >= max * 0.95
 
 def row_test(row: pd.Series, due: datetime, mean: float, median: int, min: int, max: int, stdev: float, row_test_fn: callable) -> str:
     return row_test_fn(row)

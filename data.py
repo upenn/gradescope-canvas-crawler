@@ -37,7 +37,7 @@ def get_aligned_students(include_gs: bool, include_canvas: bool) -> pd.DataFrame
     with dbEngine.connect() as connection:
         if include_gs and include_canvas:
             courses = pd.read_sql(sql=text("""select cast(sid as int) as gs_student_id, cast(student_id as int) as student_id, 
-                                           case when gs.name is not null then gs.name else sortable_name end as student, 
+                                           case when gs.name is not null then gs.name else c.name end as student, 
                                            case when emails is not null then emails else c.email end as email, cast(user_id as int) as gs_user_id, gs.course_id as gs_course_id, lti as canvas_course_id, c.id as canvas_sid
                                            from gs_students gs join gs_courses crs on gs.course_id=crs.cid full join canvas_students c on student_id = sis_user_id
                                            where role like "%STUDENT"
@@ -48,7 +48,7 @@ def get_aligned_students(include_gs: bool, include_canvas: bool) -> pd.DataFrame
                                            where role like "%STUDENT"
                                            """), con=connection)
         else:
-            courses = pd.read_sql(sql=text("""select null as gs_student_id, cast(sis_user_id as int) as student_id,sortable_name as student, email, null as gs_user_id, null as gs_course_id, course_id as canvas_course_id, c.id as canvas_sid
+            courses = pd.read_sql(sql=text("""select null as gs_student_id, cast(sis_user_id as int) as student_id,name as student, email, null as gs_user_id, null as gs_course_id, course_id as canvas_course_id, c.id as canvas_sid
                                     from canvas_students c"""), con=connection)
 
         return courses
@@ -125,7 +125,7 @@ def get_aligned_submissions(include_gs: bool, include_canvas: bool) -> pd.DataFr
                                                case when gs.[Lateness (H:M:S)] > "00:00:00" then true else false end as late, 0 as points_deducted, gsc.shortname as course_name
                                                from gs_submissions gs left join gs_students st on gs.SID = st.student_id left join gs_courses gsc on gs.course_id=gsc.cid left join gs_assignments gsa on gs.assign_id = gsa.id
                                               union
-                                                select st.sortable_name as student, st.email, score as [Total Score], a.points_possible as [Max Points], 
+                                                select st.name as student, st.email, score as [Total Score], a.points_possible as [Max Points], 
                                                case when graded_at is not null then "Graded" when submitted_at is not null then "Submitted" else "Missing" end as Status, 
                                                null as gs_submission_id, s.id as canvas_submission_id, null as [Submission Time], submitted_at, a.due_at as due,
                                                sis_user_id as student_id, null as gs_assignment_id, assignment_id as canvas_assignment_id, a.name, gst.sid as gs_student_id, 
@@ -146,7 +146,7 @@ def get_aligned_submissions(include_gs: bool, include_canvas: bool) -> pd.DataFr
         else:
             # student, email, [Total Score], [Max Points], Status, gs_submission_id, canvas_submission_id, [Submission Time], [Lateness (H:M:S)], student_id,
             # gs_assignment_id, canvas_assignment_id, gs_student_id, gs_user_id, gs_course_id, canvas_course_id
-            submissions = pd.read_sql(sql=text("""select st.sortable_name as student, st.email, score as [Total Score], a.points_possible as [Max Points], 
+            submissions = pd.read_sql(sql=text("""select st.name as student, st.email, score as [Total Score], a.points_possible as [Max Points], 
                                                case when graded_at is not null then "Graded" when submitted_at is not null then "Submitted" else "Missing" end as Status, 
                                                null as gs_submission_id, s.id as canvas_submission_id, null as [Submission Time], submitted_at, a.due_at as due,
                                                sis_user_id as student_id, null as gs_assignment_id, assignment_id as canvas_assignment_id, a.name, null as gs_student_id, null as gs_user_id, 

@@ -45,16 +45,18 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> pd.DataFr
         st.write('For course {}, {}'.format(course_id, course['name']))
         sums = []
         scales = []
+        scores = get_assignments_and_submissions()
         if course_id in config['rubric']:
             students = get_students()
-            students = students[students['gs_course_id'] == course['gs_course_id']].drop(columns=['gs_course_id'], axis=1)
+            total = len(students)
+            students = students[students['gs_course_id'] == course['gs_course_id']].drop(columns=['gs_course_id'], axis=1).drop_duplicates()
             for group in config['rubric'][course_id]:
-                the_course = courses[courses['gs_course_id'] == course['gs_course_id']]
-                scores = get_assignments_and_submissions(courses, get_assignments(), get_submissions())
+                # the_course = courses[courses['gs_course_id'] == course['gs_course_id']]
+                the_course = scores[scores['gs_course_id'] == course['gs_course_id']]
                 
                 # st.dataframe(scores)
 
-                assigns = scores[scores['name'].apply(lambda x: config['rubric'][course_id][group]['substring'] in x)]\
+                assigns = the_course[the_course['name'].apply(lambda x: config['rubric'][course_id][group]['substring'] in x)]\
                         .groupby(by=['student', 'email']).\
                         sum().reset_index()\
                         [['student', 'Total Score', "Max Points", 'email']]
@@ -65,8 +67,16 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> pd.DataFr
                     # Cap the total points based on max + ec max
                     assigns['Total Score'] = assigns.apply(lambda x: cap_points(x, config['rubric'][course_id][group]), axis=1)
 
-                students = students.merge(assigns[['email', 'Total Score', 'Max Points']].rename(columns={'Total Score': group, 'Max Points': group + '_max'}), left_on='email', right_on='email', how='left')
+                    students = students.merge(assigns[['email', 'Total Score', 'Max Points']].rename(columns={'Total Score': group, 'Max Points': group + '_max'}), left_on='email', right_on='email', how='left')
                     # .drop(columns=['email_y']).rename(columns={'email_x': 'email'})
+                else:
+                    students[group] = None
+                    students[group + '_max'] = None
+
+                if len(students) > total:
+                    st.write("Error here, grew number of students")
+                    st.dataframe(assigns)
+                    total = len(students)
 
                 sums.append(group)
                 scales.append(config['rubric'][course_id][group]['points'])
