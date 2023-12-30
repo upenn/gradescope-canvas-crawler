@@ -32,7 +32,10 @@ def sum_scaled(x, sums, maxes, scales):
     total = 0
     for i in range(len(sums)):
         if not pd.isnull(x[sums[i]]):
-            total += x[sums[i]] * float(scales[i]) / float(x[maxes[i]])
+            if x[maxes[i]] == 0:
+                total += x[sums[i]]
+            else:
+                total += x[sums[i]] * float(scales[i]) / float(x[maxes[i]])
     return total
 
 def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.DataFrame]:
@@ -53,6 +56,7 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.D
             students = get_students()
             total = len(students)
             students = students[students['gs_course_id'] == course['gs_course_id']].drop(columns=['gs_course_id'], axis=1).drop_duplicates()
+            students = students.astype({'student_id': int})
             for group in config['rubric'][course_id]:
                 # the_course = courses[courses['gs_course_id'] == course['gs_course_id']]
                 the_course = scores[scores['gs_course_id'] == course['gs_course_id']]
@@ -69,9 +73,9 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.D
                     assigns = assigns[assigns['source'] == config['rubric'][course_id][group]['source']]
                 
                 # Now we want to group by student and email, and sum up all assignments in this group
-                assigns = assigns.groupby(by=['student', 'email']).\
+                assigns = assigns.groupby(by=['student', 'email', 'student_id']).\
                         sum().reset_index()\
-                        [['student', 'Total Score', "Max Points", 'email']]
+                        [['student', 'Total Score', "Max Points", 'email', 'student_id']]
                 
                 if len(assigns):
                     assigns['Max Points'] = assigns['Max Points'].apply(lambda x: adjust_max(x, config['rubric'][course_id][group]))
@@ -79,7 +83,13 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.D
                     # Cap the total points based on max + ec max
                     assigns['Total Score'] = assigns.apply(lambda x: cap_points(x, config['rubric'][course_id][group]), axis=1)
 
-                    students = students.merge(assigns[['email', 'Total Score', 'Max Points']].rename(columns={'Total Score': group, 'Max Points': group + '_max'}), left_on='email', right_on='email', how='left')
+                    assigns = assigns.astype({'student_id': int})
+
+                    students = students.merge(assigns[['student_id', 'Total Score', 'Max Points']].rename(columns={'Total Score': group, 
+                                                                                                                   'Max Points': group + '_max', 
+                                                                                                                   'student_id': 'student_id_'}), 
+                                                                                                                   left_on='student_id', right_on='student_id_', 
+                                                                                                                   how='left').drop(columns=['student_id_'])
                 else:
                     students[group] = None
                     students[group + '_max'] = None
@@ -109,8 +119,12 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.D
                 for field in more_fields.columns:
                     if field != 'SID' and field != 'Comments':
                         sums.append(field)
-                        students[field + '_max'] = max(students[field])
-                        scales.append(max(students[field]))
+                        if field != 'Adjustments':
+                            students[field + '_max'] = max(students[field])
+                            scales.append(max(students[field]))
+                        else:
+                            scales.append(0)
+                            students[field + '_max'] = 0
                 st.write('Adding {}'.format(more_fields.columns.to_list()))
 
             # scale and sum the points
