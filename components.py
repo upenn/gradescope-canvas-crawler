@@ -236,17 +236,23 @@ def assign_grades(grade_totals: pd.DataFrame) -> None:
     """
     Grading control, presents sliders for each grade threshold and displays the resulting distribution.
     """
-    thresholds = {'A+': 97, 'A': 93, 'A-': 90, 'B+': 87, 'B': 83, 'B-': 80, 'C+': 77, 'C': 73, 'C-': 70, 'D+': 67, 'D': 63, 'D-': 60, 'F': 0}
+    thresholds = {'A+': 97, 'A': 93, 'A-': 90, 'B+': 87, 'B': 83, 'B-': 80, 'C+': 77, 'C': 73, 'C-': 70, 'D+': 67, 'D': 63, 'D-': 60}
+
+    cols = st.columns(len(thresholds))
 
     prior = 100
-    for grade in thresholds:
-        thresholds[grade] = st.slider("Threshold for {}".format(grade), 0, prior, thresholds[grade])
+    for inx,grade in enumerate(thresholds):
+        # thresholds[grade] = st.slider("Threshold for {}".format(grade), 0, prior, thresholds[grade])
+        with cols[inx]:
+            thresholds[grade] = float(st.text_input("{} ≥".format(grade), value=thresholds[grade]))
         # prior = thresholds[grade]
 
     grade_totals['grade'] = ''
     if "Comments" in grade_totals.columns:
         grade_totals['grade'] = grade_totals.apply(lambda x: "I" if not pd.isna(x['Comments']) and "incomplete" in x['Comments'].lower() else '', axis=1)
 
+    thresholds['F'] = 0
+    
     ## This is taking advantage of Python's ordered dictionaries
     for grade in thresholds:
         # grade_totals[grade] = grade_totals['Total Score'].apply(lambda x: 1 if x >= thresholds[grade] else 0)
