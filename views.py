@@ -102,12 +102,12 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.D
                 the_course = scores[scores['gs_course_id'] == course['gs_course_id']]
 
                 # The subset we want -- just those matching the substring
-                assigns = the_course[the_course['name'].apply(lambda x: config['rubric'][course_id][group]['substring'] in x)]
+                assigns = the_course[the_course['name'].apply(lambda x: config['rubric'][course_id][group]['substring'].lower() in x.lower())]
 
                 # If we have filtered to one source (Gradescope or Canvas), make sure we eliminate any others
                 if 'source' in config['rubric'][course_id][group]:
-                    assigns = assigns[assigns['source'] == config['rubric'][course_id][group]['source']]
-                
+                    assigns = assigns[assigns['source'].apply(lambda x: x.upper() == config['rubric'][course_id][group]['source'].upper())]
+
                 # Now we want to group by student and email, and sum up all assignments in this group
                 assigns = assigns.groupby(by=['student', 'email', 'student_id']).\
                         sum().reset_index()\
