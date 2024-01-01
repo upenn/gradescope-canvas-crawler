@@ -25,12 +25,12 @@
 #################################################################################
 
 import streamlit as st
-from sources import get_course_names
+from entities import get_course_names
 
 from components import display_course, display_birds_eye
 from views import get_course_student_status_summary
 from status_tests import is_overdue, is_near_due, is_submitted
-from data import include_canvas_data, include_gradescope_data
+from database import include_canvas_data, include_gradescope_data
 
 
 name = ''

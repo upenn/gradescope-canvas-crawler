@@ -29,8 +29,8 @@ import yaml
 import sys
 from os import path
 
-from sources import get_students, get_courses, get_assignments_and_submissions
-from sources import get_course_enrollments
+from entities import get_students, get_courses, get_assignments_and_submissions
+from entities import get_course_enrollments
 
 with open('config.yaml') as config_file:
     config = yaml.safe_load(config_file)
@@ -96,7 +96,12 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.D
         if course_id in config['rubric']:
             students = get_students()
             total = len(students)
-            students = students[students['gs_course_id'] == course['gs_course_id']].drop(columns=['gs_course_id'], axis=1).drop_duplicates()
+
+            # Make sure we account for nulls
+            students1 = students[students['gs_course_id'] == course['gs_course_id']].drop(columns=['gs_course_id', 'canvas_course_id'], axis=1)
+            students2 = students[students['canvas_course_id'] == course['canvas_course_id']].drop(columns=['gs_course_id', 'canvas_course_id'], axis=1)
+            
+            students = pd.concat([students1, students2]).drop_duplicates()
             students = students.astype({'student_id': int})
             for group in config['rubric'][course_id]:
                 the_course = scores[scores['gs_course_id'] == course['gs_course_id']]

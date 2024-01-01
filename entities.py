@@ -1,5 +1,5 @@
 #################################################################################
-## sources.py - data sources for the Penn CIS Teaching Dashboard
+## entities.py - data entities for the Penn CIS Teaching Dashboard
 ##
 ## Provides interfaces to data about courses, students, assignments, submissions,
 ## and extensions.  Also provides a cache for the data, to avoid repeated retrieval.
@@ -30,11 +30,11 @@ import json
 from datetime import datetime
 from dateutil.tz import *
 from status_tests import now, date_format
-from data import include_canvas_data, include_gradescope_data
-from data import get_canvas_students, get_gs_students, get_gs_courses, get_canvas_courses
-from data import get_gs_assignments, get_canvas_assignments, get_gs_submissions, get_canvas_submissions
-from data import get_gs_extensions, get_canvas_extensions, get_aligned_courses, get_aligned_students
-from data import get_aligned_assignments, get_aligned_submissions
+from database import include_canvas_data, include_gradescope_data
+from database import get_canvas_students, get_gs_students, get_gs_courses, get_canvas_courses
+from database import get_gs_assignments, get_canvas_assignments, get_gs_submissions, get_canvas_submissions
+from database import get_gs_extensions, get_canvas_extensions, get_aligned_courses, get_aligned_students
+from database import get_aligned_assignments, get_aligned_submissions
 
 timezone = datetime.now().astimezone().tzinfo
 # offset = timezone.utcoffset(datetime.now())
@@ -137,9 +137,6 @@ def get_course_enrollments() -> pd.DataFrame:
     enrollments_with_exts.drop(columns=['Due','Late'], inplace=True)
 
     enrollments_with_exts = pd.concat([enrollments_with_exts, enrollments_no_gs])
-
-    # st.write("With extensions")
-    # st.dataframe(enrollments_with_exts.head(5000))
 
     enrollments_with_exts = enrollments_with_exts.sort_values(['due','name','Status','Total Score','student'],
                                         ascending=[True,True,True,True,True])

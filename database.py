@@ -1,5 +1,5 @@
 #################################################################################
-## data.py - low-level data sources for the Penn CIS Teaching Dashboard
+## database.py - low-level data sources for the Penn CIS Teaching Dashboard
 ##
 ## Access to CSV / relational tables used to maintain student progress
 ##
@@ -60,22 +60,28 @@ def get_canvas_students() -> pd.DataFrame:
 def get_aligned_students(include_gs: bool, include_canvas: bool) -> pd.DataFrame:
     with dbEngine.connect() as connection:
         if include_gs and include_canvas:
-            courses = pd.read_sql(sql=text("""select cast(sid as int) as gs_student_id, cast(student_id as int) as student_id, 
+            # SQLite does not support full outerjoin
+            students = pd.read_sql(sql=text("""select cast(sid as int) as gs_student_id, cast(student_id as int) as student_id, 
                                            case when gs.name is not null then gs.name else c.name end as student, 
                                            case when emails is not null then emails else c.email end as email, cast(user_id as int) as gs_user_id, gs.course_id as gs_course_id, lti as canvas_course_id, c.id as canvas_sid
-                                           from gs_students gs join gs_courses crs on gs.course_id=crs.cid full join canvas_students c on cast(student_id as int) = sis_user_id
+                                           from gs_students gs join gs_courses crs on gs.course_id=crs.cid left join canvas_students c on cast(student_id as int) = cast(sis_user_id as int)
                                            where role like "%STUDENT"
+                                           union
+                                           select cast(null as int) as gs_student_id, cast(c.sis_user_id as int) as student_id, c.name,
+                                           c.email as email, null as gs_user_id, null as gs_course_id, c.course_id as canvas_course_id, c.id as canvas_sid
+                                           from canvas_students c
+                                           where not exists (select * from gs_students where cast(student_id as int) = cast(c.sis_user_id as int))
                                            """), con=connection)
         elif include_gs:
-            courses = pd.read_sql(sql=text("""select cast(sid as int) as gs_student_id, cast(student_id as int) as student_id, gs.name as student, emails as email, cast(user_id as int) as gs_user_id, gs.course_id as gs_course_id, lti as canvas_course_id, null as canvas_sid
-                                           from gs_students gs join gs_courses crs on gs.course_id=crs.cid
+            students = pd.read_sql(sql=text("""select cast(sid as int) as gs_student_id, cast(student_id as int) as student_id, gs.name as student, emails as email, cast(user_id as int) as gs_user_id, gs.course_id as gs_course_id, lti as canvas_course_id, null as canvas_sid
+                                           from gs_students gs join gs_courses crs on cast(gs.course_id as int)=cast(crs.cid as int)
                                            where role like "%STUDENT"
                                            """), con=connection)
         else:
-            courses = pd.read_sql(sql=text("""select null as gs_student_id, cast(sis_user_id as int) as student_id,name as student, email, null as gs_user_id, null as gs_course_id, course_id as canvas_course_id, c.id as canvas_sid
+            students = pd.read_sql(sql=text("""select null as gs_student_id, cast(sis_user_id as int) as student_id,name as student, email, null as gs_user_id, null as gs_course_id, course_id as canvas_course_id, c.id as canvas_sid
                                     from canvas_students c"""), con=connection)
 
-        return courses
+        return students
 
 def get_gs_courses() -> pd.DataFrame:
     return pd.read_sql_table("gs_courses", connection)
@@ -87,8 +93,12 @@ def get_canvas_courses() -> pd.DataFrame:
 def get_aligned_courses(include_gs: bool, include_canvas: bool) -> pd.DataFrame:
     with dbEngine.connect() as connection:
         if include_gs and include_canvas:
+            # SQLite does not support full outerjoin
             courses = pd.read_sql(sql=text("""select cid as gs_course_id, gs.name as gs_name, c.name as canvas_name, shortname, year as term, lti as canvas_course_id, sis_course_id, start_at, end_at
-                                    from gs_courses gs full join canvas_courses c on gs.lti = c.id"""), con=connection)
+                                    from gs_courses gs left join canvas_courses c on gs.lti = c.id
+                                           union
+                                           select cid as gs_course_id, gs.name as gs_name, c.name as canvas_name, shortname, year as term, c.id as canvas_course_id, sis_course_id, start_at, end_at
+                                    from  canvas_courses c left join gs_courses gs on gs.lti = c.id"""), con=connection)
         elif include_gs:
             courses = pd.read_sql(sql=text("""select cid as gs_course_id, gs.name as gs_name, null as canvas_name, shortname, year as term, lti as canvas_course_id, null as sis_course_id, null as start_at, null as end_at
                                     from gs_courses gs"""), con=connection)
@@ -149,7 +159,7 @@ def get_aligned_submissions(include_gs: bool, include_canvas: bool) -> pd.DataFr
                                                case when gs.[Lateness (H:M:S)] > "00:00:00" then true else false end as late, 0 as points_deducted, gsc.shortname as course_name, "Gradescope" as source
                                                from gs_submissions gs left join gs_students st on gs.SID = cast(st.student_id as int) left join gs_courses gsc on gs.course_id=gsc.cid left join gs_assignments gsa on gs.assign_id = gsa.id
                                               union
-                                                select st.name as student, st.email, score as [Total Score], a.points_possible as [Max Points], 
+                                               select st.name as student, st.email, score as [Total Score], a.points_possible as [Max Points], 
                                                case when graded_at is not null then "Graded" when submitted_at is not null then "Submitted" else "Missing" end as Status, 
                                                null as gs_submission_id, s.id as canvas_submission_id, null as [Submission Time], submitted_at, a.due_at as due,
                                                cast(sis_user_id as int) as student_id, null as gs_assignment_id, assignment_id as canvas_assignment_id, a.name, cast(gst.sid as int) as gs_student_id, 

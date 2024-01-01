@@ -23,7 +23,7 @@
 
 import os
 import pandas as pd
-from data import config, dbEngine
+from database import config, dbEngine
 
 from gscdash.pycanvas.canvas_status import CanvasStatus
 from gscdash.pyscope.gs_status import GradescopeStatus
