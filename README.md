@@ -4,14 +4,14 @@
 
 Welcome to the Penn [Computer and Information Science Department](https://www.cis.upenn.edu/) Teaching Dashboard!  This project develops a *data dashboard* and grading platform for courses that combine *Canvas*, *Gradescope*, and spreadsheet (shared Excel or Google Sheets) components.  It has two roles:
 
-* Continuous monitoring of student progress (including missed deadlines and low scores).
-* Grade assessment across different components.  Adjust thresholds, see histograms!
+* Continuous monitoring of student progress (including missed deadlines and low scores).  This could ultimately be used to define triggers.
+* Grade assessment / grade finalizaiton across different components.  Adjust thresholds, see histograms!
 
 Our goal is a single aggregation point for tracking student progress (and triggering alarms as appropriate) across many courses.  Ultimately there will be both "pull" and "push" components (messages vs dashboard).  Through a shared spreadsheet the teaching and advising staff can keep notes about each student, in addition to the data in Gradescope and Canvas.
 
 ![Dashboard](dashboard-screenshot.png)
 
-We pull from both the Gradescope and Canvas APIs.  This has required substantial development to find and leverage the "hooks" between the two systems.  In addition, various mechanisms have been implemented to allow the grades in one system (e.g., Gradescope) override the (potentially partly synced) grades in the other system.  Additional fields can be maintained by the staff, including e.g., *Adjustments*, *Comments*, and *Participation*.
+We pull from both the Gradescope and Canvas APIs.  In addition, various mechanisms have been implemented to allow the grades in one system (e.g., Gradescope) override the (potentially partly synced) grades in the other system.  Additional fields can be maintained by the staff, including e.g., *Adjustments*, *Comments*, and *Participation*, through an Excel sheet (which can be concurrently edited in Google Sheets).
 
 ## Getting Started
 
