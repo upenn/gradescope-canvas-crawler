@@ -32,7 +32,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 
 from status_tests import now
-from sources import get_courses, get_assignments, get_course_enrollments, get_submissions
+from entities import get_courses, get_assignments, get_course_enrollments, get_submissions
 from views import get_scores_in_rubric, get_assignments_and_submissions
 
 from status_tests import is_overdue, is_near_due, is_submitted, is_below_mean, is_far_below_mean, is_far_above_mean
@@ -236,7 +236,7 @@ def assign_grades(grade_totals: pd.DataFrame) -> None:
     """
     Grading control, presents sliders for each grade threshold and displays the resulting distribution.
     """
-    thresholds = {'A+': 97, 'A': 93, 'A-': 90, 'B+': 87, 'B': 83, 'B-': 80, 'C+': 77, 'C': 73, 'C-': 70, 'D+': 67, 'D': 63, 'D-': 60}
+    thresholds = {'A+': 97, 'A': 93, 'A-': 90, 'B+': 87, 'B': 83, 'B-': 80, 'C+': 77, 'C': 73, 'C-': 70, 'D+': 67, 'D': 60}
 
     cols = st.columns(len(thresholds))
 
@@ -267,10 +267,10 @@ def assign_grades(grade_totals: pd.DataFrame) -> None:
     plt.xlabel("(Proposed) Letter Grade")
     plt.title("Grade distribution")
 
-    for grade in ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F', "I"]:
+    for grade in ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'F', "I"]:
         if grade not in distrib:
             distrib[grade] = 0
-    distrib = distrib[['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F', "I"]]
+    distrib = distrib[['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'F', "I"]]
     bars = ax.bar(distrib.index, distrib)#['Total Points'])
     ax.bar_label(bars)
     fig.show()
