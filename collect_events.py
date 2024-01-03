@@ -72,10 +72,10 @@ if __name__ == "__main__":
             all_assignments.extend(assignments)
             all_submissions.extend(submissions)
             all_student_summaries.extend(student_summaries)
-            write(student_summaries, 'canvas_student_summaries', first)
-            write(students, 'canvas_students', first)
-            write(assignments, 'canvas_assignments', first)
-            write(submissions, 'canvas_submissions', first)
+            write(pd.concat(student_summaries), 'canvas_student_summaries', first)
+            write(pd.concat(students), 'canvas_students', first)
+            write(pd.concat(assignments), 'canvas_assignments', first)
+            write(pd.concat(submissions), 'canvas_submissions', first)
 
             first = False
 
@@ -118,18 +118,18 @@ if __name__ == "__main__":
             gs_submissions.extend(submissions)
             gs_extensions.extend(extensions)
 
-            student_tbl = students.explode('emails')
+            student_tbl = pd.concat(students).explode('emails')
             student_tbl['role'] = student_tbl['role'].apply(lambda x: x.name)
             student_tbl['user_id'] = student_tbl['user_id'].apply(lambda x: x if x != '' else None)
             student_tbl['student_id'] = student_tbl['student_id'].apply(lambda x: x if x != '' else None)
             student_tbl = student_tbl.astype({'sid': str, 'course_id': int})
             write(student_tbl, 'gs_students', first)
-            assignment_tbl = assignments.astype({'id': int, 'course_id': int})
+            assignment_tbl = pd.concat(assignments).astype({'id': int, 'course_id': int})
             write(assignment_tbl, 'gs_assignments', first)
-            submission_tbl = submissions.astype({'SID': str, 'course_id': int, 'assign_id': int})
+            submission_tbl = pd.concat(submissions).astype({'SID': str, 'course_id': int, 'assign_id': int})
             submission_tbl = submission_tbl[['First Name', 'Last Name', 'SID', 'Email','course_id','assign_id', 'Sections', 'Total Score', 'Max Points', 'Status', 'Submission ID', 'Submission Time', 'Lateness (H:M:S)', 'View Count', 'Submission Count']]
             write(submission_tbl, 'gs_submissions', first)
-            extension_tbl = extensions.astype({'course_id': int, 'assign_id': int, 'user_id': int})
+            extension_tbl = pd.concat(extensions).astype({'course_id': int, 'assign_id': int, 'user_id': int})
             write(extension_tbl, 'gs_extensions', first)
 
             first = False
