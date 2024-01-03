@@ -152,7 +152,12 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.D
                 else:
                     output(group_name, 'Total Score', 'Max Points', assigns.drop(columns=['email']))
 
-            if path.isfile('more-fields-{}.xlsx'.format(course_id)):
+            # Look for optional file with additional fields
+            ss = 'more-fields-{}.xlsx'.format(course_id)
+            if "spreadsheet" in config['rubric']['course_id']['spreadsheet']:
+                ss = config['rubric']['course_id']['spreadsheet']
+
+            if path.isfile(ss):
                 st.markdown ("## Additional Fields from Excel")
                 more_fields = pd.read_excel('more-fields-{}.xlsx'.format(course_id)).drop(columns=['First Name', 'Last Name','Email'])
                 
