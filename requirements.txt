@@ -36,5 +36,5 @@ pyyaml>=6.0
 pandas>=1.4.3
 html5lib
 sqlalchemy
-python_canvas
+python_canvas_layer
 
