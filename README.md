@@ -56,7 +56,7 @@ After the script runs, there should be a series of files in the `data` directory
 * `gs_extensions.csv` / `canvas_student_summaries.csv`: list of student info including late days, extensions, etc.
 * `gs_submissions.csv` / `canvas_submissions.csv`: list of homework submissions including timestamps, whether late, etc.
 
-In addition, the Teaching Dashboard creates a SQLite3 database instance, in the form of the file `dashboard.db`.  Actual operations are done over this database.
+In addition, the Teaching Dashboard creates a SQLite3 database instance, in the form of the file `dashboard.db` (overridable in `config.yaml` via the `db` key).  Tools such as the Penn CIS Teaching Dashboard (https://github.com/upenn/teaching-dashboard) make use of this database.
 
 Each time you re-run the crawler, it will overwrite the existing data.
 
