@@ -10,7 +10,7 @@ import json
 from gscdash.pyscope.account import GSAccount
 from gscdash.pyscope.course import GSCourse
 
-from python_canvas.course_info import CourseApi
+from python_canvas_layer.course_info import CourseApi
 
 class ConnState(Enum):
     INIT = 0

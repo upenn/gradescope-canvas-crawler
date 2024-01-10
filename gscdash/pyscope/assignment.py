@@ -1,4 +1,4 @@
-from python_canvas.course_info import Assignment
+from python_canvas_layer.course_info import Assignment
 
 import requests
 from bs4 import BeautifulSoup

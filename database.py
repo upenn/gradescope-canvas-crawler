@@ -44,8 +44,11 @@ with open('config.yaml') as config_file:
         print ('Gradescope data: {}'.format(include_gradescope_data))
 
 
-# connection = sqlite3.connect("grades.db", check_same_thread=False)
-dbEngine=sqlalchemy.create_engine('sqlite:///./dashboard.db') # ensure this is the correct path for the sqlite file. 
+if 'db' in config:
+    db_file = config['db']
+else:
+    db_file = 'dashboard.db'
+dbEngine=sqlalchemy.create_engine('sqlite:///./{}'.format(db_file)) # ensure this is the correct path for the sqlite file. 
 
 connection = dbEngine.connect()
 
