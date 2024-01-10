@@ -7,8 +7,8 @@ import logging
 import pandas as pd
 import lxml
 import json
-from gscdash.pyscope.account import GSAccount
-from gscdash.pyscope.course import GSCourse
+from crawler.pyscope.account import GSAccount
+from crawler.pyscope.course import GSCourse
 
 from python_canvas_layer.course_info import CourseApi
 

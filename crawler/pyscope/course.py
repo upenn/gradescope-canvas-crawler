@@ -1,9 +1,9 @@
 from enum import Enum
 from bs4 import BeautifulSoup
 from datetime import datetime
-from gscdash.pyscope.person import GSPerson
-from gscdash.pyscope.person import GSRole
-from gscdash.pyscope.assignment import GSAssignment
+from crawler.pyscope.person import GSPerson
+from crawler.pyscope.person import GSRole
+from crawler.pyscope.assignment import GSAssignment
 import json
 
 class LoadedCapabilities(Enum):

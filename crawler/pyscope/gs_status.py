@@ -14,9 +14,9 @@
 ##
 #####################################################################################################################
 
-from gscdash.pyscope import pyscope as gs
-from gscdash.pyscope.pyscope import GSConnection
-from gscdash.pyscope.pyscope import GSAccount, GSCourse
+from crawler.pyscope import pyscope as gs
+from crawler.pyscope.pyscope import GSConnection
+from crawler.pyscope.pyscope import GSAccount, GSCourse
 from python_canvas_layer.course_info import CourseWrapper
 import pandas as pd
 from datetime import datetime

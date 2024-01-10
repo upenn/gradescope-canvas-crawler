@@ -2,7 +2,7 @@ from python_canvas_layer.course_info import Assignment
 
 import requests
 from bs4 import BeautifulSoup
-from gscdash.pyscope.question import GSQuestion
+from crawler.pyscope.question import GSQuestion
 import json
 
 class GSAssignment(Assignment):
