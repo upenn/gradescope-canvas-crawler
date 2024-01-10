@@ -17,7 +17,7 @@
 from gscdash.pyscope import pyscope as gs
 from gscdash.pyscope.pyscope import GSConnection
 from gscdash.pyscope.pyscope import GSAccount, GSCourse
-from gscdash.course_info import CourseWrapper
+from python_canvas.course_info import CourseWrapper
 import pandas as pd
 from datetime import datetime
 import pytz

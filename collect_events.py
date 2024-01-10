@@ -25,7 +25,7 @@ import os
 import pandas as pd
 from database import config, dbEngine
 
-from gscdash.pycanvas.canvas_status import CanvasStatus
+from python_canvas.canvas_status import CanvasStatus
 from gscdash.pyscope.gs_status import GradescopeStatus
 
 def process_canvas_course(canvas_url, canvas_key, canvas_course_id):

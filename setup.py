@@ -11,7 +11,7 @@ setuptools.setup(
     description = "Gradescope-Canvas Dashboard support",
     long_description = long_description,
     long_description_content_type = "text/markdown",
-    url = "https://github.com/upenn/gradescope-canvas-dashboard",
+    url = "https://github.com/upenn/gradescope-canvas-crawler",
     classifiers = [
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU Affero General Public License v3",
