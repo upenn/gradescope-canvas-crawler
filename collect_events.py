@@ -72,7 +72,7 @@ if __name__ == "__main__":
             all_assignments.extend(assignments)
             all_submissions.extend(submissions)
             all_student_summaries.extend(student_summaries)
-            write(pd.concat(student_summaries), 'canvas_student_summaries', first)
+            # write(pd.concat(student_summaries), 'canvas_student_summaries', first)
             write(pd.concat(students), 'canvas_students', first)
             write(pd.concat(assignments), 'canvas_assignments', first)
             write(pd.concat(submissions), 'canvas_submissions', first)
@@ -81,8 +81,8 @@ if __name__ == "__main__":
 
         canvas_courses.to_csv('data/canvas_courses.csv',index=False)
         write(canvas_courses, 'canvas_courses', True)
-        if len(all_student_summaries):
-            pd.concat(all_student_summaries).to_csv('data/canvas_student_summaries.csv', index=False)
+        # if len(all_student_summaries):
+        #     pd.concat(all_student_summaries).to_csv('data/canvas_student_summaries.csv', index=False)
 
         if len(all_students):
             pd.concat(all_students).to_csv('data/canvas_students.csv', index=False)
