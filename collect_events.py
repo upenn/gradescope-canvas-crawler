@@ -134,8 +134,9 @@ if __name__ == "__main__":
 
             first = False
 
-        gs_courses = gs_courses.astype({'cid': int, 'lti': int})
         gs_courses.to_csv('data/gs_courses.csv',index=False)
+        if len(gs_courses):
+            gs_courses = gs_courses.astype({'cid': int, 'lti': int})
         write(gs_courses, 'gs_courses', True)
         if len(gs_students):
             pd.concat(gs_students).to_csv('data/gs_students.csv', index=False)
