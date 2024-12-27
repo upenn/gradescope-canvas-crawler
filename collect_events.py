@@ -72,7 +72,7 @@ if __name__ == "__main__":
             all_assignments.extend(assignments)
             all_submissions.extend(submissions)
             all_student_summaries.extend(student_summaries)
-            write(pd.concat(student_summaries), 'canvas_student_summaries', first)
+            # write(pd.concat(student_summaries), 'canvas_student_summaries', first)
             write(pd.concat(students), 'canvas_students', first)
             write(pd.concat(assignments), 'canvas_assignments', first)
             write(pd.concat(submissions), 'canvas_submissions', first)
@@ -81,8 +81,8 @@ if __name__ == "__main__":
 
         canvas_courses.to_csv('data/canvas_courses.csv',index=False)
         write(canvas_courses, 'canvas_courses', True)
-        if len(all_student_summaries):
-            pd.concat(all_student_summaries).to_csv('data/canvas_student_summaries.csv', index=False)
+        # if len(all_student_summaries):
+        #     pd.concat(all_student_summaries).to_csv('data/canvas_student_summaries.csv', index=False)
 
         if len(all_students):
             pd.concat(all_students).to_csv('data/canvas_students.csv', index=False)
@@ -134,8 +134,9 @@ if __name__ == "__main__":
 
             first = False
 
-        gs_courses = gs_courses.astype({'cid': int, 'lti': int})
         gs_courses.to_csv('data/gs_courses.csv',index=False)
+        if len(gs_courses):
+            gs_courses = gs_courses.astype({'cid': int, 'lti': int})
         write(gs_courses, 'gs_courses', True)
         if len(gs_students):
             pd.concat(gs_students).to_csv('data/gs_students.csv', index=False)
