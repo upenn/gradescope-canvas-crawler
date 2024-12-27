@@ -23,11 +23,12 @@
 
 import yaml
 import sys, traceback
-import sqlite3
+# import sqlite3
 import pandas as pd
-import sqlalchemy
-from sqlalchemy.sql import text
+# import sqlalchemy
+# from sqlalchemy.sql import text
 from datetime import datetime
+import duckdb
 
 include_gradescope_data = True
 include_canvas_data = True
@@ -48,7 +49,8 @@ if 'db' in config:
     db_file = config['db']
 else:
     db_file = 'dashboard.db'
-dbEngine=sqlalchemy.create_engine('sqlite:///./{}'.format(db_file)) # ensure this is the correct path for the sqlite file. 
+#dbEngine=sqlalchemy.create_engine('sqlite:///./{}'.format(db_file)) # ensure this is the correct path for the sqlite file. 
+dbEngine = duckdb.connect(db_file)
 
-connection = dbEngine.connect()
+connection = dbEngine#.connect()
 

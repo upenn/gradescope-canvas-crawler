@@ -39,10 +39,12 @@ def process_gs_course(email, pwd, course):
     return (gs_students, gs_assignments, gs_submissions, gs_extensions)
 
 def write(dataframe: pd.DataFrame, name: str, first: bool = True):
+    df = dataframe.copy()
     if first:
-        dataframe.to_sql(name, dbEngine, if_exists='replace', index=False)
+        dbEngine.execute('DROP TABLE IF EXISTS {}'.format(name))
+        dbEngine.execute('CREATE TABLE {} AS SELECT * FROM df'.format(name))
     else:
-        dataframe.to_sql(name, dbEngine, if_exists='append', index=False)
+        dbEngine.execute('INSERT INTO {} SELECT * FROM df'.format(name))
 
 if __name__ == "__main__":
     canvas_url = config['canvas']['site']
