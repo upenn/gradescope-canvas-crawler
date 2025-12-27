@@ -40,4 +40,5 @@ html5lib
 sqlalchemy
 python_canvas_layer
 pyarrow
+edapi
 

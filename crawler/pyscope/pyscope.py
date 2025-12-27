@@ -197,6 +197,9 @@ class GSConnection(CourseApi):
             if 'id' in assignment:
                 ext_table = self.session.get('https://gradescope.com/courses/' + course.cid + '/assignments/' + assignment['id'] + '/extensions').text
 
+                if 'error' in ext_table:
+                    continue
+
                 # print("{}".format(ext_table))
                 try:
                     tab_list = pd.read_html(StringIO(ext_table))

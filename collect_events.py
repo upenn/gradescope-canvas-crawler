@@ -128,11 +128,13 @@ if __name__ == "__main__":
             write(student_tbl, 'gs_students', first)
             assignment_tbl = pd.concat(assignments).astype({'id': int, 'course_id': int})
             write(assignment_tbl, 'gs_assignments', first)
-            submission_tbl = pd.concat(submissions).astype({'SID': str, 'course_id': int, 'assign_id': int})
-            submission_tbl = submission_tbl[['First Name', 'Last Name', 'SID', 'Email','course_id','assign_id', 'Sections', 'Total Score', 'Max Points', 'Status', 'Submission ID', 'Submission Time', 'Lateness (H:M:S)', 'View Count', 'Submission Count']]
-            write(submission_tbl, 'gs_submissions', first)
-            extension_tbl = pd.concat(extensions).astype({'course_id': int, 'assign_id': int, 'user_id': int})
-            write(extension_tbl, 'gs_extensions', first)
+            if len(submissions):
+                submission_tbl = pd.concat(submissions).astype({'SID': str, 'course_id': int, 'assign_id': int})
+                submission_tbl = submission_tbl[['First Name', 'Last Name', 'SID', 'Email','course_id','assign_id', 'Sections', 'Total Score', 'Max Points', 'Status', 'Submission ID', 'Submission Time', 'Lateness (H:M:S)', 'View Count', 'Submission Count']]
+                write(submission_tbl, 'gs_submissions', first)
+            if len(extensions):
+                extension_tbl = pd.concat(extensions).astype({'course_id': int, 'assign_id': int, 'user_id': int})
+                write(extension_tbl, 'gs_extensions', first)
 
             first = False
 
