@@ -12,6 +12,8 @@ from crawler.pyscope.course import GSCourse
 
 from python_canvas_layer.course_info import CourseApi
 
+logger = logging.getLogger(__name__)
+
 class ConnState(Enum):
     INIT = 0
     LOGGED_IN = 1
@@ -79,10 +81,10 @@ class GSConnection(CourseApi):
             instructor_courses = instructor_courses.next_sibling
 
         if not instructor_courses or len(instructor_courses) == 0:
-            print ('No instructor courses found')
+            logger.error ('No instructor courses found')
 
         for course in instructor_courses.find_all("a", class_="courseBox"):
-            logging.debug ('Found course box')
+            logger.debug ('Found course box')
             shortname = course.find("h3", class_="courseBox--shortname").text
             name = course.find("div", class_="courseBox--name").text
             cid = course.get("href").split("/")[-1]
@@ -109,7 +111,7 @@ class GSConnection(CourseApi):
             )
 
             if student_courses is None:
-                print('No student courses found')
+                logger.warn('No student courses found')
                 return True
 
             student_courses = student_courses.next_sibling

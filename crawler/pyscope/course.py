@@ -6,6 +6,11 @@ from crawler.pyscope.person import GSRole
 from crawler.pyscope.assignment import GSAssignment
 import json
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 class LoadedCapabilities(Enum):
     ASSIGNMENTS = 0
     ROSTER = 1
@@ -68,7 +73,10 @@ class GSCourse:
         self.roster = {}
         self._lazy_load_roster()
 
-    def remove_person(self, name):
+    def remove_person(self, student_id):
+        """
+        Remove a person from the course. Changed from the default -- it's by student ID!
+        """
         self._check_capabilities({LoadedCapabilities.ROSTER})
 
         membership_resp = self.session.get(
@@ -84,7 +92,7 @@ class GSCourse:
             "https://www.gradescope.com/courses/"
             + self.cid
             + "/memberships/"
-            + self.roster[name].data_id,
+            + self.roster[student_id].data_id,
             data=remove_params,
             headers={"x-csrf-token": authenticity_token},
         )
@@ -203,11 +211,11 @@ class GSCourse:
                     continue
 
                 if assign_id and 'section_' in assign_id:
-                    print ('Skipping assignment section {}'.format(name))
+                    logger.debug('Skipping assignment section {}'.format(name))
                     continue
 
                 if 'submission_window' not in assignment:
-                    print('Skipping deadline-free assignment {}'.format(name))
+                    logger.debug('Skipping deadline-free assignment {}'.format(name))
                     continue
 
                 assigned = assignment['submission_window']['release_date']
@@ -242,7 +250,7 @@ class GSCourse:
 
         return assignments
 
-    def change_person_role(self, name, role):
+    def change_person_role(self, student_id, role):
         self._check_capabilities({LoadedCapabilities.ROSTER})
 
         membership_resp = self.session.get(
@@ -260,7 +268,7 @@ class GSCourse:
             "https://www.gradescope.com/courses/"
             + self.cid
             + "/memberships/"
-            + self.roster[name].data_id
+            + self.roster[student_id].data_id
             + "/update_role",
             data=role_params,
             headers={"x-csrf-token": authenticity_token},
@@ -393,10 +401,10 @@ class GSCourse:
         parsed_membership_resp = BeautifulSoup(membership_resp.text, "html.parser")
 
         if "You are not authorized to access this page" in membership_resp.text:
-            print ('No access to roster, skipping')
+            logger.debug('No access to roster, skipping')
             return
         else:
-            print("Instructor access to roster")
+            logger.debug("Instructor access to roster")
 
         roster_table = []
         for student_row in parsed_membership_resp.find_all("tr", class_="rosterRow"):
@@ -431,8 +439,8 @@ class GSCourse:
                 else:
                     submissions = int(row[4].text)
                     linked = True if "statusIcon-active" in row[5].find("i").get("class") else False
-            # TODO Make types reasonable.
-            self.roster[name] = GSPerson(name, data_id, email, role, submissions, linked, user_id, student_id)
+
+            self.roster[student_id] = GSPerson(name, data_id, email, role, submissions, linked, user_id, student_id)
         self.state.add(LoadedCapabilities.ROSTER)
 
     def _check_capabilities(self, needed):
@@ -455,10 +463,10 @@ class GSCourse:
             "content"
         )
 
-        print(authenticity_token)
+        logger.debug(authenticity_token)
 
         delete_params = {"_method": "delete", "authenticity_token": authenticity_token}
-        print(delete_params)
+        logger.debug(delete_params)
 
         delete_resp = self.session.post(
             "https://www.gradescope.com/courses/" + self.cid,
